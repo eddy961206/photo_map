@@ -8,26 +8,26 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-// [성능개선 추가] EXIF 파싱용 라이브러리 로드 (exiftool 호출 또는 exif-parser 사용 가능)
-// 여기서는 exif-parser를 예로 듬 (npm install exif-parser)
+// [성능개선 추가] EXIF 파싱용 라이브러리 로드 (exif-parser 호출)
 const ExifParser = require('exif-parser');
 
 const app = express();
 
-// ▼ 정적 파일 제공: index.html 및 images 폴더를 서빙
+// ▼ 정적 파일 제공: index.html, styles.css 및 images 폴더를 서빙
 app.use(express.static(__dirname));
 
 const imagesDir = path.join(__dirname, 'images');
 
 // [성능개선 추가] 서버 시작 시 images 디렉토리를 스캔해 모든 JPG 파일의 EXIF를 미리 파싱하고 캐시
-let imageDataCache = []; // { path: 'images/xxx.jpg', lat: number, lng: number } 형태의 배열
+let imageDataCache = []; // { path: 'images/xxx.jpg', lat: number, lng: number, date: 'YYYY-MM-DD' } 형태의 배열
 
+// [성능개선 추가] EXIF의 위도경도를 십진수로 변환하는 함수
 function convertToDecimal(coord, ref) {
   if (!coord) return null;
   const degrees = coord[0];
   const minutes = coord[1];
   const seconds = coord[2];
-  let decimal = degrees + (minutes/60) + (seconds/3600);
+  let decimal = degrees + (minutes / 60) + (seconds / 3600);
   if (ref === 'S' || ref === 'W') {
     decimal = decimal * -1;
   }
@@ -49,17 +49,29 @@ function parseExifForAllImages() {
         const result = parser.parse();
 
         // EXIF GPS 정보 확인
-        // exif-parser로 얻는 GPS 정보는 deg/min/sec 형태가 아닌 decimal 형식일 수도 있으니 상황에 맞게 파싱해야 함
-        // exif-parser 결과에서 GPS 정보는 result.tags.GPSLatitude, result.tags.GPSLongitude 형태로 decimal 값이 들어갈 수 있음.
-        // 여기서는 EXIF GPS 정보가 존재한다고 가정하고 처리. 실제 사용 시 존재 여부 체크 필요.
         const lat = result.tags.GPSLatitude;
         const lng = result.tags.GPSLongitude;
 
-        if (lat && lng) {
+        // EXIF 촬영 날짜 정보 확인 (DateTimeOriginal)
+        const dateOriginal = result.tags.DateTimeOriginal;
+
+        // [추가 내용] 날짜 형식 변환
+        let formattedDate = null;
+        if (dateOriginal) {
+          // exif-parser는 DateTimeOriginal을 초 단위의 Unix 타임스탬프로 반환할 수 있습니다.
+          // 따라서 밀리초 단위로 변환하여 Date 객체를 생성합니다.
+          const date = new Date(dateOriginal * 1000);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          formattedDate = `${year}-${month}-${day}`;
+        }
+
+        if (lat && lng && formattedDate) {
           // [성능개선 추가] 썸네일 경로 사용 (썸네일 미리 생성했다고 가정, 없으면 원본 사용)
           // 실제 썸네일 생성은 별도 과정 필요 (예: Sharp 또는 ImageMagick)
           const thumbnailPath = `images/${file}`; // 여기서는 일단 원본 경로 사용
-          results.push({ path: thumbnailPath, lat: lat, lng: lng });
+          results.push({ path: thumbnailPath, lat: lat, lng: lng, date: formattedDate });
         }
       }
       resolve(results);
@@ -80,12 +92,14 @@ app.get('/api/images', (req, res) => {
   });
 });
 
-// [성능개선 추가] /api/image_data 라우트: 미리 파싱한 EXIF 위치 정보 반환
+// [성능개선 추가] /api/image_data 라우트: 미리 파싱한 EXIF 위치 정보 및 날짜 정보 반환
 app.get('/api/image_data', (req, res) => {
   res.json(imageDataCache);
 });
 
 const port = 3000;
+
+// 서버 시작 시 EXIF 파싱 및 캐싱
 parseExifForAllImages().then(results => {
   imageDataCache = results;
   console.log(`총 ${imageDataCache.length}개 이미지의 EXIF 정보 파싱 완료.`);

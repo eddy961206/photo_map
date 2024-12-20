@@ -1,0 +1,38 @@
+/* ====================
+[추가 내용] styles.css
+- 날짜 버튼과 기타 UI 요소의 스타일을 정의합니다.
+==================== */
+
+/* ▼ 날짜 버튼 컨테이너 스타일 */
+.date-buttons-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ▼ 날짜 버튼 스타일 */
+.date-button {
+  background-color: #ffffffcc;
+  border: 1px solid #888;
+  border-radius: 5px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s, transform 0.2s;
+}
+.date-button:hover {
+  background-color: #f0f0f0cc;
+  transform: scale(1.05);
+}
+.date-button.active {
+  background-color: #007bffcc;
+  color: white;
+  border-color: #007bff;
+}
+
+/* ▼ Lightbox 스타일은 index.html 내에 포함되어 있음 */
+/* #lightbox는 이미 index.html 내에 스타일이 포함되어 있으므로 별도 정의할 필요 없음 */

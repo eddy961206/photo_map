@@ -1,7 +1,13 @@
 {
+  "name": "photo-map",
+  "version": "1.0.0",
+  "description": "개인 사진 지도 웹사이트",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "exif-parser": "^0.1.12",
-    "express": "^4.21.2",
-    "sharp": "^0.33.5"
+    "express": "^4.18.2",
+    "exif-parser": "^0.1.12"
   }
 }

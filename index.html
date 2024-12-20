@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 
+<!-- [추가 내용] Date Buttons CSS -->
+<link rel="stylesheet" href="styles.css">
+
 <style>
   /* ▼ 지도 영역 스타일 */
   #map {
@@ -26,11 +29,41 @@
   .photo-gallery img {
     width: 100px;
     height: auto;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .photo-gallery img:hover {
+    transform: scale(1.05);
+  }
+
+  /* [추가 내용] Lightbox 스타일 (간단한 구현) */
+  #lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1000;
+  }
+  #lightbox img {
+    max-width: 90%;
+    max-height: 90%;
   }
 </style>
 </head>
 <body>
   <h1>이미지 EXIF 위치 정보 기반 지도 표시</h1>
+  
+  <!-- [추가 내용] 날짜 선택 버튼 컨테이너 -->
+  <div id="dateButtonsContainer" class="date-buttons-container">
+    <!-- 버튼이 JavaScript로 동적으로 추가됩니다 -->
+  </div>
+
   <div id="map"></div>
 
   <!-- exif-js 라이브러리 (EXIF 정보 추출용) -->
@@ -43,87 +76,168 @@
   <script>
     // =============================
     // [변경 및 추가 내용 - 클라이언트 로직]
-    // 1. /api/images를 호출해 images 폴더 내 JPG 파일 리스트를 동적으로 가져옴
+    // 1. /api/image_data를 호출해 images 폴더 내 JPG 파일 리스트를 동적으로 가져옴
     // 2. 각 이미지에 대해 EXIF GPS 정보 처리
     // 3. 위치 정보가 있는 이미지들을 좌표별로 그룹화
     // 4. 같은 위치(또는 매우 근접한 위치)에 여러 이미지가 있을 경우, 
     //    클러스터 마커를 사용하여 UI 개선
     // 5. 마커 클릭 시 해당 위치의 모든 이미지를 하나의 팝업에 갤러리 형태로 표시
+    // 6. 날짜 선택 버튼을 통해 특정 날짜의 사진만 지도에 표시
     // =============================
 
+    // Leaflet 지도 초기화
     var map = L.map('map').setView([35.0, 135.0], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // ▼ 마커 클러스터 그룹 생성
+    // 마커 클러스터 그룹 생성
     var markers = L.markerClusterGroup();
+    map.addLayer(markers);
 
-    // ▼ EXIF의 위도경도를 십진수로 변환하는 함수
-    function convertToDecimal(coord, ref) {
-      if (!coord) return null;
-      var degrees = coord[0];
-      var minutes = coord[1];
-      var seconds = coord[2];
-      var decimal = degrees + (minutes / 60) + (seconds / 3600);
-      if (ref === 'S' || ref === 'W') {
-        decimal = decimal * -1;
-      }
-      return decimal;
-    }
-
-    // ▼ 위치별로 이미지들을 그룹화하기 위한 맵(키: 'lat,lng' 문자열, 값: 이미지 리스트)
+    // 위치별로 이미지들을 그룹화하기 위한 맵(키: 'lat,lng' 문자열, 값: 이미지 리스트)
     var locationMap = {};
+    var allDates = new Set(); // 모든 날짜를 저장할 Set
+    var imageData = []; // 모든 이미지 데이터를 저장할 배열
 
-    // [성능개선 추가] 이제 클라이언트에서 각 이미지의 EXIF를 해석하지 않고,
-    // 서버에서 미리 파싱한 데이터를 /api/image_data로부터 가져옴.
-    // 이렇게 하면 이미지 개수가 많을 때도 한 번에 JSON 데이터를 받아 UI를 그릴 수 있어 로딩 속도가 빨라짐.
-
+    // 서버에서 이미지 데이터 가져오기
     fetch('/api/image_data')
       .then(res => res.json())
       .then(data => {
-        // data: [{ path: 'images/xxx.jpg', lat: ..., lng: ...}, ...]
+        // data: [{ path: 'images/xxx.jpg', lat: ..., lng: ..., date: 'YYYY-MM-DD' }, ...]
+        
+        imageData = data; // 이미지 데이터를 전역 변수에 저장
 
+        // 모든 날짜를 Set에 추가
         data.forEach(item => {
-          var key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
-          if (!locationMap[key]) {
-            locationMap[key] = [];
-          }
-          locationMap[key].push(item.path);
+          allDates.add(item.date);
         });
 
-        // ▼ locationMap을 순회하며 각 위치에 마커 추가
-        for (var key in locationMap) {
-          var coords = key.split(",");
-          var lat = parseFloat(coords[0]);
-          var lng = parseFloat(coords[1]);
-          var images = locationMap[key]; // 이 위치에 속한 이미지들
+        // 날짜 선택 버튼 생성
+        createDateButtons(Array.from(allDates).sort());
 
-          var marker = L.marker([lat, lng]);
-
-          var galleryHtml = '<div class="photo-gallery">';
-          images.forEach(function(imgPath) {
-            galleryHtml += '<img src="' + imgPath + '" alt="사진" />';
-          });
-          galleryHtml += '</div>';
-
-          marker.bindPopup(galleryHtml);
-          markers.addLayer(marker);
-        }
-
-        map.addLayer(markers);
-
-        if (markers.getLayers().length > 0) {
-          map.fitBounds(markers.getBounds());
-        } else {
-          console.log("위치 정보가 있는 이미지가 없어 지도 범위를 조정하지 않습니다.");
+        // 초기 로드 시 첫 번째 날짜의 이미지를 표시
+        const sortedDates = Array.from(allDates).sort();
+        if (sortedDates.length > 0) {
+          displayImagesByDate(sortedDates[0]);
         }
       })
       .catch(err => {
         console.log("에러 발생:", err);
       });
 
+    // 날짜 선택 버튼 생성 함수
+    function createDateButtons(dates) {
+      var container = document.getElementById('dateButtonsContainer');
+
+      dates.forEach(dateStr => {
+        // 날짜 문자열을 "MM/DD(요일)" 형식으로 변환
+        var formattedDate = formatDateButton(dateStr);
+        var button = document.createElement('button');
+        button.innerText = formattedDate;
+        button.classList.add('date-button');
+        button.addEventListener('click', function() {
+          // 모든 버튼에서 active 클래스 제거
+          var buttons = document.querySelectorAll('.date-button');
+          buttons.forEach(btn => btn.classList.remove('active'));
+          // 클릭한 버튼에 active 클래스 추가
+          this.classList.add('active');
+          // 선택된 날짜의 이미지 표시
+          displayImagesByDate(dateStr);
+        });
+        container.appendChild(button);
+      });
+
+      // 첫 번째 버튼에 active 클래스 추가
+      if (container.firstChild) {
+        container.firstChild.classList.add('active');
+      }
+    }
+
+    // 날짜 버튼 텍스트 형식 변환 함수
+    function formatDateButton(dateStr) {
+      // dateStr: 'YYYY-MM-DD'
+      var date = new Date(dateStr);
+      var month = String(date.getMonth() + 1).padStart(2, '0');
+      var day = String(date.getDate()).padStart(2, '0');
+      var dayOfWeek = getKoreanDayOfWeek(date.getDay());
+      return `${month}/${day}(${dayOfWeek})`;
+    }
+
+    // 요일을 한글로 반환하는 함수
+    function getKoreanDayOfWeek(day) {
+      var days = ['일', '월', '화', '수', '목', '금', '토'];
+      return days[day];
+    }
+
+    // 특정 날짜의 이미지를 지도에 표시하는 함수
+    function displayImagesByDate(selectedDate) {
+      // ▼ 기존 마커 클러스터 그룹 초기화
+      markers.clearLayers();
+
+      // 위치별로 이미지들을 그룹화하기 위한 맵 초기화
+      locationMap = {};
+
+      // 모든 이미지 데이터를 순회하며 선택된 날짜의 이미지만 필터링
+      imageData.forEach(item => {
+        if (item.date === selectedDate) {
+          var key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
+          if (!locationMap[key]) {
+            locationMap[key] = [];
+          }
+          locationMap[key].push(item.path);
+        }
+      });
+
+      // locationMap을 순회하며 각 위치에 마커 추가
+      for (var key in locationMap) {
+        var coords = key.split(",");
+        var lat = parseFloat(coords[0]);
+        var lng = parseFloat(coords[1]);
+        var images = locationMap[key]; // 이 위치에 속한 이미지들
+
+        var marker = L.marker([lat, lng]);
+
+        var galleryHtml = '<div class="photo-gallery">';
+        images.forEach(function(imgPath) {
+          // [추가 내용] 이미지 클릭 시 큰 이미지 보기 (Lightbox 구현)
+          galleryHtml += '<img src="' + imgPath + '" alt="사진" onclick="openImage(\'' + imgPath + '\')" />';
+        });
+        galleryHtml += '</div>';
+
+        marker.bindPopup(galleryHtml);
+        markers.addLayer(marker);
+      }
+
+      if (markers.getLayers().length > 0) {
+        map.fitBounds(markers.getBounds());
+      } else {
+        console.log("선택한 날짜에 위치 정보가 있는 이미지가 없어 지도 범위를 조정하지 않습니다.");
+        alert("선택한 날짜에 위치 정보가 있는 이미지가 없습니다.");
+      }
+    }
+
+    // [추가 내용] 이미지 클릭 시 큰 이미지 보기 (Lightbox 예시)
+    function openImage(imagePath) {
+      // 이미 Lightbox 스타일이 CSS에 포함되어 있음
+      // 기존에 lightbox가 있으면 제거
+      var existingLightbox = document.getElementById('lightbox');
+      if (existingLightbox) {
+        existingLightbox.parentNode.removeChild(existingLightbox);
+      }
+
+      // Lightbox 생성
+      const lightbox = document.createElement('div');
+      lightbox.id = 'lightbox';
+      lightbox.innerHTML = `<img src="${imagePath}" alt="큰 이미지" />`;
+      document.body.appendChild(lightbox);
+
+      // Lightbox 클릭 시 제거
+      lightbox.addEventListener('click', function() {
+        document.body.removeChild(lightbox);
+      });
+    }
   </script>
 </body>
 </html>
