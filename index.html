@@ -52,6 +52,8 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <!-- MarkerCluster 플러그인 -->
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <!-- jQuery 라이브러리 -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <script>
     // =============================
@@ -82,56 +84,53 @@
     var imageData = []; // 모든 이미지 데이터를 저장할 배열
 
     // 서버에서 이미지 데이터 가져오기
-    fetch('/api/image_data')
-      .then(res => res.json())
-      .then(data => {
-        // data: [{ path: 'images/xxx.jpg', lat: ..., lng: ..., date: 'YYYY-MM-DD' }, ...]
-        
-        imageData = data; // 이미지 데이터를 전역 변수에 저장
+    $.ajax({
+        url: '/api/image_data',
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            // data: [{ path: 'images/xxx.jpg', lat: ..., lng: ..., date: 'YYYY-MM-DD' }, ...]
+            
+            imageData = data; // 이미지 데이터를 전역 변수에 저장
 
-        // 모든 날짜를 Set에 추가
-        data.forEach(item => {
-          allDates.add(item.date);
-        });
+            // 모든 날짜를 Set에 추가
+            data.forEach(item => {
+                allDates.add(item.date);
+            });
 
-        // 날짜 선택 버튼 생성
-        createDateButtons(Array.from(allDates).sort());
+            // 날짜 선택 튼 생성
+            createDateButtons(Array.from(allDates).sort());
 
-        // 초기 로드 시 첫 번째 날짜의 이미지를 표시
-        const sortedDates = Array.from(allDates).sort();
-        if (sortedDates.length > 0) {
-          displayImagesByDate(sortedDates[0]);
-          // [추가 내용] 첫 번째 날짜 버튼 활성화
-          const firstButton = document.querySelector('.date-button');
-          if (firstButton) {
-            firstButton.classList.add('active');
-          }
+            // 초기 로드 시 첫 번째 날짜의 이미지를 표시
+            const sortedDates = Array.from(allDates).sort();
+            if (sortedDates.length > 0) {
+                displayImagesByDate(sortedDates[0]);
+                // [추가 내용] 첫 번째 날짜 버튼 활성화
+                $('.date-button').first().addClass('active');
+            }
+        },
+        error: function(err) {
+            console.log("에러 발생:", err);
         }
-      })
-      .catch(err => {
-        console.log("에러 발생:", err);
-      });
+    });
 
     // 날짜 선택 버튼 생성 함수
     function createDateButtons(dates) {
-      var container = document.getElementById('dateButtonsContainer');
+      var container = $('#dateButtonsContainer');
 
       dates.forEach(dateStr => {
         // 날짜 문자열을 "MM/DD(요일)" 형식으로 변환
         var formattedDate = formatDateButton(dateStr);
-        var button = document.createElement('button');
-        button.innerText = formattedDate;
-        button.classList.add('date-button');
-        button.addEventListener('click', function() {
+        var button = $('<button></button>').text(formattedDate).addClass('date-button');
+        button.on('click', function() {
           // 모든 버튼에서 active 클래스 제거
-          var buttons = document.querySelectorAll('.date-button');
-          buttons.forEach(btn => btn.classList.remove('active'));
+          $('.date-button').removeClass('active');
           // 클릭한 버튼에 active 클래스 추가
-          this.classList.add('active');
+          $(this).addClass('active');
           // 선택된 날짜의 이미지 표시
           displayImagesByDate(dateStr);
         });
-        container.appendChild(button);
+        container.append(button);
       });
     }
 
@@ -201,14 +200,13 @@
     // [추가 내용] 이미지 클릭 시 큰 이미지 보기 (Lightbox 예시)
     function openImage(imagePath, gallery) {
       // 기존에 lightbox가 있으면 제거
-      var existingLightbox = document.getElementById('lightbox');
-      if (existingLightbox) {
-        existingLightbox.parentNode.removeChild(existingLightbox);
+      var existingLightbox = $('#lightbox');
+      if (existingLightbox.length) {
+        existingLightbox.remove();
       }
 
       // Lightbox 생성
-      const lightbox = document.createElement('div');
-      lightbox.id = 'lightbox';
+      const lightbox = $('<div></div>').attr('id', 'lightbox');
 
       // [변경] 슬라이드 기능 추가
       let images = Array.from(gallery.querySelectorAll('img')).map(img => img.src);
@@ -223,34 +221,34 @@
       sliderHtml += '<button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>';
       sliderHtml += '<button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>';
       sliderHtml += '</div>';
-        lightbox.innerHTML = sliderHtml;
-      document.body.appendChild(lightbox);
+        lightbox.html(sliderHtml);
+      $('body').append(lightbox);
 
       // Lightbox 클릭 시 제거
-      lightbox.addEventListener('click', function(event) {
-        if (event.target === lightbox) {
-          document.body.removeChild(lightbox);
+      lightbox.on('click', function(event) {
+        if (event.target === lightbox[0]) {
+          lightbox.remove();
         }
       });
     }
 
      // [추가 내용] 슬라이드 기능
     function prevSlide(slider) {
-      const images = slider.querySelectorAll('.slide-image');
-      const activeImage = slider.querySelector('.slide-image.active');
-      let currentIndex = parseInt(activeImage.dataset.index);
+      const images = $(slider).find('.slide-image');
+      const activeImage = $(slider).find('.slide-image.active');
+      let currentIndex = parseInt(activeImage.data('index'));
       
-      activeImage.classList.remove('active');
+      activeImage.removeClass('active');
       currentIndex = (currentIndex - 1 + images.length) % images.length;
-      images[currentIndex].classList.add('active');
+      $(images[currentIndex]).addClass('active');
     }
       function nextSlide(slider) {
-      const images = slider.querySelectorAll('.slide-image');
-      const activeImage = slider.querySelector('.slide-image.active');
-      let currentIndex = parseInt(activeImage.dataset.index);
-        activeImage.classList.remove('active');
+      const images = $(slider).find('.slide-image');
+      const activeImage = $(slider).find('.slide-image.active');
+      let currentIndex = parseInt(activeImage.data('index'));
+        activeImage.removeClass('active');
       currentIndex = (currentIndex + 1) % images.length;
-      images[currentIndex].classList.add('active');
+      $(images[currentIndex]).addClass('active');
     }
   </script>
 </body>
