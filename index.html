@@ -35,12 +35,13 @@
     <div id="dateButtonsContainer" class="date-buttons-container"></div>
     <div id="map"></div>
     <div id="timeSliderContainer">
-        <label class="toggle-switch">
-            <input type="checkbox" id="timeSliderToggle">
-            <span class="toggle-slider"></span>
-        </label>
-        <label>시간 필터: <span id="timeLabel"></span></label>
-        <input type="range" id="timeSlider" min="0" max="1439" value="0" step="1" disabled />
+      <label class="toggle-switch">
+          <input type="checkbox" id="timeSliderToggle">
+          <span class="toggle-slider"></span>
+      </label>
+      <label>시간 필터: <span id="timeLabel"></span></label>
+      <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
+      <datalist id="timeTicks"></datalist>
     </div>
     <script src="https://unpkg.com/exif-js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -142,30 +143,39 @@
                 .map(item => {
                     const [hh, mm] = item.time.split(':').map(Number);
                     return hh * 60 + mm;
-                });
-
+                })
+                .sort((a, b) => a - b);
             if (times.length === 0) {
                 $('#timeSlider').attr('disabled', true);
                 $('#timeLabel').text('N/A');
                 return;
             }
 
-            const minTime = Math.min(...times);
-            const maxTime = Math.max(...times);
-
+          // datalist 업데이트
+          const timeTicksElement = $('#timeTicks');
+          timeTicksElement.empty();
+          times.forEach(time => {
+              timeTicksElement.append(`<option value="${time}">`);
+          });
             $('#timeSlider').attr('disabled', !isTimeSliderEnabled);
-            $('#timeSlider').attr('min', minTime);
-            $('#timeSlider').attr('max', maxTime);
-            $('#timeSlider').val(minTime);
-            updateTimeLabel(minTime);
-
-            $('#timeSlider').off('input').on('input', function() {
-                const selectedMinutes = parseInt($(this).val(), 10);
-                updateTimeLabel(selectedMinutes);
-                if (isTimeSliderEnabled) {
-                    displayImagesByDateAndTime(selectedDate, selectedMinutes);
-                }
-            });
+          $('#timeSlider').attr('min', times[0]);
+          $('#timeSlider').attr('max', times[times.length - 1]);
+          $('#timeSlider').val(times[0]);
+          updateTimeLabel(times[0]);
+            // 슬라이더 이벤트 핸들러 수정
+          $('#timeSlider').off('input').on('input', function() {
+              const currentValue = parseInt($(this).val(), 10);
+              // 가장 가까운 실제 시간값 찾기
+              const closestTime = times.reduce((prev, curr) => {
+                  return Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev;
+              });
+              
+              $(this).val(closestTime);
+              updateTimeLabel(closestTime);
+              if (isTimeSliderEnabled) {
+                  displayImagesByDateAndTime(selectedDate, closestTime);
+              }
+          });
         }
 
         function updateTimeLabel(minutes) {
