@@ -1,8 +1,7 @@
 /* ====================
-[추가 내용] styles.css
-- 날짜 버튼과 기타 UI 요소의 스타일을 정의합니다.
-==================== */
-
+추가 내용] styles.css
+ 날짜 버튼과 기타 UI 요소의 스타일을 정의합니다.
+=================== */
 /* ▼ 날짜 버튼 컨테이너 스타일 */
 .date-buttons-container {
   position: absolute;
@@ -24,10 +23,12 @@
   font-size: 14px;
   transition: background-color 0.3s, transform 0.2s;
 }
+
 .date-button:hover {
   background-color: #f0f0f0cc;
   transform: scale(1.05);
 }
+
 .date-button.active {
   background-color: #007bffcc;
   color: white;
@@ -35,7 +36,7 @@
 }
 
 /* ▼ Lightbox 스타일 */
-#lightbox {
+.lightbox {
   position: fixed;
   top: 0;
   left: 0;
@@ -49,7 +50,7 @@
 }
 
 /* ▼ 이미지 슬라이더 스타일 */
-#lightbox .image-slider {
+.lightbox .image-slider {
   position: relative;
   width: 65%;
   height: 90vh;
@@ -58,21 +59,22 @@
   align-items: center;
 }
 
-#lightbox .image-slider img {
-  max-width: 90vw; /* 화면 너비의 90%로 제한 */
-  max-height: 90vh; /* 화면 높이의 90%로 제한 */
-  object-fit: contain; /* 이미지 비율 유지하며 크기 조정 */
-  display: none; /* 기본적으로 보이지 않음 */
+.lightbox .image-slider img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  display: none;
 }
 
-#lightbox .image-slider img.slide-image {
-  display: none; /* 모든 slide-image 기본적으로 보이지 않음 */
-}
-#lightbox .image-slider img.slide-image.active {
-  display: block; /* active 클래스가 있을 때만 표시 */
+.lightbox .image-slider img.slide-image {
+  display: none;
 }
 
-#lightbox .image-slider button {
+.lightbox .image-slider img.slide-image.active {
+  display: block;
+}
+
+.lightbox .image-slider button {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -85,25 +87,26 @@
   border-radius: 5px;
 }
 
-#lightbox .image-slider button:hover {
+.lightbox .image-slider button:hover {
   background: rgba(255, 255, 255, 0.9);
 }
 
-#lightbox .image-slider .slide-prev {
+.lightbox .image-slider .slide-prev {
   left: 20px;
 }
 
-#lightbox .image-slider .slide-next {
+.lightbox .image-slider .slide-next {
   right: 20px;
 }
 
-#timeSliderContainer {
+/* ▼ 시간 슬라이더 컨테이너 스타일 */
+.time-slider-container {
   position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   padding: 10px 15px;
   border-radius: 8px;
   font-size: 14px;
@@ -114,4 +117,63 @@
 
 #timeSlider {
   width: 200px;
+}
+
+/* ▼ 토글 스위치 스타일 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #007bff;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+/* ▼ 마커 팝업 시간 표시 스타일 */
+.photo-time {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.photo-gallery-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
