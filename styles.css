@@ -34,5 +34,66 @@
   border-color: #007bff;
 }
 
-/* ▼ Lightbox 스타일은 index.html 내에 포함되어 있음 */
-/* #lightbox는 이미 index.html 내에 스타일이 포함되어 있으므로 별도 정의할 필요 없음 */
+/* ▼ Lightbox 스타일 */
+#lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* ▼ 이미지 슬라이더 스타일 */
+#lightbox .image-slider {
+  position: relative;
+  width: 90%;
+  height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#lightbox .image-slider img {
+  max-width: 90vw; /* 화면 너비의 90%로 제한 */
+  max-height: 90vh; /* 화면 높이의 90%로 제한 */
+  object-fit: contain; /* 이미지 비율 유지하며 크기 조정 */
+  display: none; /* 기본적으로 보이지 않음 */
+}
+
+#lightbox .image-slider img.slide-image {
+  display: none; /* 모든 slide-image 기본적으로 보이지 않음 */
+}
+#lightbox .image-slider img.slide-image.active {
+  display: block; /* active 클래스가 있을 때만 표시 */
+}
+
+#lightbox .image-slider button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  font-size: 24px;
+  padding: 15px;
+  cursor: pointer;
+  z-index: 1;
+  border-radius: 5px;
+}
+
+#lightbox .image-slider button:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+#lightbox .image-slider .slide-prev {
+  left: 20px;
+}
+
+#lightbox .image-slider .slide-next {
+  right: 20px;
+}
+

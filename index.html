@@ -36,24 +36,6 @@
     transform: scale(1.05);
   }
 
-  /* [추가 내용] Lightbox 스타일 (간단한 구현) */
-  #lightbox {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    z-index: 1000;
-  }
-  #lightbox img {
-    max-width: 90%;
-    max-height: 90%;
-  }
 </style>
 </head>
 <body>
@@ -200,7 +182,7 @@
         var galleryHtml = '<div class="photo-gallery">';
         images.forEach(function(imgPath) {
           // [추가 내용] 이미지 클릭 시 큰 이미지 보기 (Lightbox 구현)
-          galleryHtml += '<img src="' + imgPath + '" alt="사진" onclick="openImage(\'' + imgPath + '\')" />';
+          galleryHtml += '<img src="' + imgPath + '" alt="사진" onclick="openImage(\'' + imgPath + '\', this.parentNode)" />';
         });
         galleryHtml += '</div>';
 
@@ -217,8 +199,7 @@
     }
 
     // [추가 내용] 이미지 클릭 시 큰 이미지 보기 (Lightbox 예시)
-    function openImage(imagePath) {
-      // 이미 Lightbox 스타일이 CSS에 포함되어 있음
+    function openImage(imagePath, gallery) {
       // 기존에 lightbox가 있으면 제거
       var existingLightbox = document.getElementById('lightbox');
       if (existingLightbox) {
@@ -228,13 +209,48 @@
       // Lightbox 생성
       const lightbox = document.createElement('div');
       lightbox.id = 'lightbox';
-      lightbox.innerHTML = `<img src="${imagePath}" alt="큰 이미지" />`;
+
+      // [변경] 슬라이드 기능 추가
+      let images = Array.from(gallery.querySelectorAll('img')).map(img => img.src);
+      // imagePath를 절대 경로로 변환
+      const normalizedImagePath = new URL(imagePath, window.location.origin).href;
+      const currentIndex = images.indexOf(normalizedImagePath);
+      
+      let sliderHtml = '<div class="image-slider">';
+      images.forEach(function(imgPath, index) {
+        sliderHtml += `<img src="${imgPath}" alt="큰 이미지" data-index="${index}" class="slide-image${index === currentIndex ? ' active' : ''}" />`;
+      });
+      sliderHtml += '<button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>';
+      sliderHtml += '<button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>';
+      sliderHtml += '</div>';
+        lightbox.innerHTML = sliderHtml;
       document.body.appendChild(lightbox);
 
       // Lightbox 클릭 시 제거
-      lightbox.addEventListener('click', function() {
-        document.body.removeChild(lightbox);
+      lightbox.addEventListener('click', function(event) {
+        if (event.target === lightbox) {
+          document.body.removeChild(lightbox);
+        }
       });
+    }
+
+     // [추가 내용] 슬라이드 기능
+    function prevSlide(slider) {
+      const images = slider.querySelectorAll('.slide-image');
+      const activeImage = slider.querySelector('.slide-image.active');
+      let currentIndex = parseInt(activeImage.dataset.index);
+      
+      activeImage.classList.remove('active');
+      currentIndex = (currentIndex - 1 + images.length) % images.length;
+      images[currentIndex].classList.add('active');
+    }
+      function nextSlide(slider) {
+      const images = slider.querySelectorAll('.slide-image');
+      const activeImage = slider.querySelector('.slide-image.active');
+      let currentIndex = parseInt(activeImage.dataset.index);
+        activeImage.classList.remove('active');
+      currentIndex = (currentIndex + 1) % images.length;
+      images[currentIndex].classList.add('active');
     }
   </script>
 </body>
