@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사진 위치 정보 지도 표시</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<!-- MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+<style>
+  /* ▼ 지도 영역 스타일 */
+  #map {
+    width: 100%;
+    height: 80vh;
+  }
+
+  /* ▼ 마커 팝업 내 이미지 갤러리 스타일 */
+  .photo-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .photo-gallery img {
+    width: 100px;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- exif-js 라이브러리 (EXIF 정보 추출용) -->
+  <script src="https://unpkg.com/exif-js"></script>
+  <!-- Leaflet 라이브러리 -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- MarkerCluster 플러그인 -->
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+  <script>
+    // =============================
+    // [변경 및 추가 내용 - 클라이언트 로직]
+    // 1. /api/images를 호출해 images 폴더 내 JPG 파일 리스트를 동적으로 가져옴
+    // 2. 각 이미지에 대해 EXIF에서 GPS 정보 추출
+    // 3. 위치 정보가 있는 이미지들을 좌표별로 그룹화
+    // 4. 같은 위치(또는 매우 근접한 위치)에 여러 이미지가 있을 경우, 
+    //    클러스터 마커를 사용하여 UI 개선
+    // 5. 마커 클릭 시 해당 위치의 모든 이미지를 하나의 팝업에 갤러리 형태로 표시
+    // =============================
+
+    var map = L.map('map').setView([35.0, 135.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ▼ 마커 클러스터 그룹 생성
+    var markers = L.markerClusterGroup();
+
+    // ▼ EXIF의 위도경도를 십진수로 변환하는 함수
+    function convertToDecimal(coord, ref) {
+      if (!coord) return null;
+      var degrees = coord[0];
+      var minutes = coord[1];
+      var seconds = coord[2];
+      var decimal = degrees + (minutes / 60) + (seconds / 3600);
+      if (ref === 'S' || ref === 'W') {
+        decimal = decimal * -1;
+      }
+      return decimal;
+    }
+
+    // ▼ 이미지별 EXIF에서 GPS 정보 추출 후 반환하는 함수 (Promise)
+    function getImageGPSData(imagePath) {
+      return new Promise((resolve) => {
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imagePath;
+        img.onload = function() {
+          EXIF.getData(img, function() {
+            var lat = EXIF.getTag(this, 'GPSLatitude');
+            var lng = EXIF.getTag(this, 'GPSLongitude');
+            var latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+            var lngRef = EXIF.getTag(this, 'GPSLongitudeRef');
+
+            if (lat && lng && latRef && lngRef) {
+              var latDecimal = convertToDecimal(lat, latRef);
+              var lngDecimal = convertToDecimal(lng, lngRef);
+              console.log(imagePath, "GPS:", latDecimal, lngDecimal);
+              resolve({ path: imagePath, lat: latDecimal, lng: lngDecimal });
+            } else {
+              console.log(imagePath, "GPS 정보 없음");
+              resolve(null);
+            }
+          });
+        };
+        img.onerror = function() {
+          console.log("이미지 로딩 실패:", imagePath);
+          resolve(null);
+        };
+      });
+    }
+
+    // ▼ 위치별로 이미지들을 그룹화하기 위한 맵(키: 'lat,lng' 문자열, 값: 이미지 리스트)
+    var locationMap = {};
+
+    // ▼ 서버에서 이미지 리스트 받아오기
+    fetch('/api/images')
+      .then(res => res.json())
+      .then(imageList => {
+        // ▼ 모든 이미지에 대해 EXIF GPS 정보 처리
+        var promises = imageList.map(img => getImageGPSData(img));
+        return Promise.all(promises);
+      })
+      .then(results => {
+        // ▼ results에는 각 이미지에 대한 {path, lat, lng} 또는 null
+        results.forEach(item => {
+          if (!item) return; // GPS 정보 없는 경우 무시
+          var key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
+          if (!locationMap[key]) {
+            locationMap[key] = [];
+          }
+          locationMap[key].push(item.path);
+        });
+
+        // ▼ locationMap을 순회하며 각 위치에 마커 추가
+        for (var key in locationMap) {
+          var coords = key.split(",");
+          var lat = parseFloat(coords[0]);
+          var lng = parseFloat(coords[1]);
+          var images = locationMap[key]; // 이 위치에 속한 이미지들
+
+          // ▼ 마커를 추가하며 팝업에는 해당 위치의 모든 이미지를 갤러리로 표시
+          var marker = L.marker([lat, lng]);
+
+          // ▼ 팝업에 이미지 갤러리 HTML 생성
+          var galleryHtml = '<div class="photo-gallery">';
+          images.forEach(function(imgPath) {
+            galleryHtml += '<img src="' + imgPath + '" alt="사진" />';
+          });
+          galleryHtml += '</div>';
+
+          marker.bindPopup(galleryHtml);
+          markers.addLayer(marker);
+        }
+
+        map.addLayer(markers);
+
+        // ▼ 마커가 하나 이상이라면 그 범위에 맞게 지도 조정
+        if (markers.getLayers().length > 0) {
+          map.fitBounds(markers.getBounds());
+        } else {
+          console.log("위치 정보가 있는 이미지가 없어 지도 범위를 조정하지 않습니다.");
+        }
+      })
+      .catch(err => {
+        console.log("에러 발생:", err);
+      });
+  </script>
+</body>
+</html>
