@@ -119,6 +119,11 @@
         const sortedDates = Array.from(allDates).sort();
         if (sortedDates.length > 0) {
           displayImagesByDate(sortedDates[0]);
+          // [추가 내용] 첫 번째 날짜 버튼 활성화
+          const firstButton = document.querySelector('.date-button');
+          if (firstButton) {
+            firstButton.classList.add('active');
+          }
         }
       })
       .catch(err => {
@@ -146,11 +151,6 @@
         });
         container.appendChild(button);
       });
-
-      // 첫 번째 버튼에 active 클래스 추가
-      if (container.firstChild) {
-        container.firstChild.classList.add('active');
-      }
     }
 
     // 날짜 버튼 텍스트 형식 변환 함수
