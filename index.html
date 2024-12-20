@@ -204,26 +204,31 @@
         }
 
         function displayImagesByDateAndTime(selectedDate, selectedMinutes) {
-            markers.clearLayers();
-            locationMap = {};
-
+          markers.clearLayers();
+          locationMap = {};
+          let centerLatLng = null; // 중앙에 위치할 마커의 좌표
             imageData.forEach(item => {
-                if (item.date === selectedDate) {
-                    const [hh, mm] = item.time.split(':').map(Number);
-                    const itemMinutes = hh * 60 + mm;
-                    if (itemMinutes <= selectedMinutes) {
-                        const key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
-                        if (!locationMap[key]) {
-                            locationMap[key] = [];
-                        }
-                        locationMap[key].push({
-                            path: item.path,
-                            time: item.time
-                        });
-                    }
-                }
-            });
-            createMarkers();
+              if (item.date === selectedDate) {
+                  const [hh, mm] = item.time.split(':').map(Number);
+                  const itemMinutes = hh * 60 + mm;
+                  if (itemMinutes <= selectedMinutes) {
+                      const key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
+                      if (!locationMap[key]) {
+                          locationMap[key] = [];
+                      }
+                      locationMap[key].push({
+                          path: item.path,
+                          time: item.time
+                      });
+                      centerLatLng = [item.lat, item.lng]; // 마지막으로 추가된 마커의 좌표를 저장
+                  }
+              }
+          });
+          createMarkers();
+            // 마커가 존재할 경우, 해당 마커의 위치로 지도 이동
+          if (centerLatLng) {
+              map.setView(centerLatLng, map.getZoom());
+          }
         }
 
         function createMarkers() {
