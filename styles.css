@@ -51,7 +51,7 @@
 /* ▼ 이미지 슬라이더 스타일 */
 #lightbox .image-slider {
   position: relative;
-  width: 90%;
+  width: 65%;
   height: 90vh;
   display: flex;
   justify-content: center;
