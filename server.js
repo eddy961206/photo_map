@@ -60,7 +60,7 @@ function parseExifForAllImages() {
         if (dateOriginal) {
           // exif-parser는 DateTimeOriginal을 초 단위의 Unix 타임스탬프로 반환할 수 있습니다.
           // 따라서 밀리초 단위로 변환하여 Date 객체를 생성합니다.
-          const date = new Date(dateOriginal * 1000);
+          const date = new Date((dateOriginal * 1000) - (9 * 60 * 60 * 1000));  // UTC -> 한/일 시각으로
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const day = String(date.getDate()).padStart(2, '0');
