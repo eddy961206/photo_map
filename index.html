@@ -30,6 +30,7 @@
 </style>
 </head>
 <body>
+  <h1>이미지 EXIF 위치 정보 기반 지도 표시</h1>
   <div id="map"></div>
 
   <!-- exif-js 라이브러리 (EXIF 정보 추출용) -->
@@ -43,7 +44,7 @@
     // =============================
     // [변경 및 추가 내용 - 클라이언트 로직]
     // 1. /api/images를 호출해 images 폴더 내 JPG 파일 리스트를 동적으로 가져옴
-    // 2. 각 이미지에 대해 EXIF에서 GPS 정보 추출
+    // 2. 각 이미지에 대해 EXIF GPS 정보 처리
     // 3. 위치 정보가 있는 이미지들을 좌표별로 그룹화
     // 4. 같은 위치(또는 매우 근접한 위치)에 여러 이미지가 있을 경우, 
     //    클러스터 마커를 사용하여 UI 개선
@@ -72,52 +73,19 @@
       return decimal;
     }
 
-    // ▼ 이미지별 EXIF에서 GPS 정보 추출 후 반환하는 함수 (Promise)
-    function getImageGPSData(imagePath) {
-      return new Promise((resolve) => {
-        var img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = imagePath;
-        img.onload = function() {
-          EXIF.getData(img, function() {
-            var lat = EXIF.getTag(this, 'GPSLatitude');
-            var lng = EXIF.getTag(this, 'GPSLongitude');
-            var latRef = EXIF.getTag(this, 'GPSLatitudeRef');
-            var lngRef = EXIF.getTag(this, 'GPSLongitudeRef');
-
-            if (lat && lng && latRef && lngRef) {
-              var latDecimal = convertToDecimal(lat, latRef);
-              var lngDecimal = convertToDecimal(lng, lngRef);
-              console.log(imagePath, "GPS:", latDecimal, lngDecimal);
-              resolve({ path: imagePath, lat: latDecimal, lng: lngDecimal });
-            } else {
-              console.log(imagePath, "GPS 정보 없음");
-              resolve(null);
-            }
-          });
-        };
-        img.onerror = function() {
-          console.log("이미지 로딩 실패:", imagePath);
-          resolve(null);
-        };
-      });
-    }
-
     // ▼ 위치별로 이미지들을 그룹화하기 위한 맵(키: 'lat,lng' 문자열, 값: 이미지 리스트)
     var locationMap = {};
 
-    // ▼ 서버에서 이미지 리스트 받아오기
-    fetch('/api/images')
+    // [성능개선 추가] 이제 클라이언트에서 각 이미지의 EXIF를 해석하지 않고,
+    // 서버에서 미리 파싱한 데이터를 /api/image_data로부터 가져옴.
+    // 이렇게 하면 이미지 개수가 많을 때도 한 번에 JSON 데이터를 받아 UI를 그릴 수 있어 로딩 속도가 빨라짐.
+
+    fetch('/api/image_data')
       .then(res => res.json())
-      .then(imageList => {
-        // ▼ 모든 이미지에 대해 EXIF GPS 정보 처리
-        var promises = imageList.map(img => getImageGPSData(img));
-        return Promise.all(promises);
-      })
-      .then(results => {
-        // ▼ results에는 각 이미지에 대한 {path, lat, lng} 또는 null
-        results.forEach(item => {
-          if (!item) return; // GPS 정보 없는 경우 무시
+      .then(data => {
+        // data: [{ path: 'images/xxx.jpg', lat: ..., lng: ...}, ...]
+
+        data.forEach(item => {
           var key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
           if (!locationMap[key]) {
             locationMap[key] = [];
@@ -132,10 +100,8 @@
           var lng = parseFloat(coords[1]);
           var images = locationMap[key]; // 이 위치에 속한 이미지들
 
-          // ▼ 마커를 추가하며 팝업에는 해당 위치의 모든 이미지를 갤러리로 표시
           var marker = L.marker([lat, lng]);
 
-          // ▼ 팝업에 이미지 갤러리 HTML 생성
           var galleryHtml = '<div class="photo-gallery">';
           images.forEach(function(imgPath) {
             galleryHtml += '<img src="' + imgPath + '" alt="사진" />';
@@ -148,7 +114,6 @@
 
         map.addLayer(markers);
 
-        // ▼ 마커가 하나 이상이라면 그 범위에 맞게 지도 조정
         if (markers.getLayers().length > 0) {
           map.fitBounds(markers.getBounds());
         } else {
@@ -158,6 +123,7 @@
       .catch(err => {
         console.log("에러 발생:", err);
       });
+
   </script>
 </body>
 </html>
