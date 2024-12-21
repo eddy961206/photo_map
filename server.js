@@ -60,7 +60,7 @@ function parseExifForAllImages() {
         if (dateOriginal) {
           // exif-parser는 DateTimeOriginal을 초 단위의 Unix 타임스탬프로 반환
           // 밀리초 단위로 변환하고 UTC 기준이므로 필요시 타임존 변환
-          const date = new Date((dateOriginal * 1000) - (9 * 60 * 60 * 1000));  // UTC -> 한/일 시각으로
+          const date = new Date((dateOriginal * 1000) - (9 * 60 * 60 * 1000));  // UTC -> 한국/일본 시각으로
 
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -73,9 +73,14 @@ function parseExifForAllImages() {
         }
 
         if (lat && lng && formattedDate && formattedTime) {
-          // 썸네일 경로 사용 가능 (현재 원본 경로 사용)
           const thumbnailPath = `images/${file}`;
-          results.push({ path: thumbnailPath, lat: lat, lng: lng, date: formattedDate, time: formattedTime });
+          results.push({
+            path: thumbnailPath,
+            lat: lat,
+            lng: lng,
+            date: formattedDate,
+            time: formattedTime
+          });
         }
       }
       resolve(results);

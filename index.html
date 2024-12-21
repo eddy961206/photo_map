@@ -29,6 +29,36 @@
         .photo-gallery img:hover {
             transform: scale(1.05);
         }
+
+        /* [추가] 마커 클러스터 커스텀 아이콘 스타일 */
+        .my-cluster-icon {
+            /* 클러스터 아이콘 전체 스타일 */
+            color: #fff;
+            text-align: center;
+            border-radius: 50%;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.2;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        .my-cluster-icon span {
+            position: relative;
+            top: 0;
+            left: 0;
+            background-color: rgba(0,0,0,0.4);
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        .cluster-icon {
+            width: 50px;
+            height: 50px;
+            background-size: cover;
+            background-position: center center;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -48,17 +78,39 @@
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        // 지도 초기화
         var map = L.map('map').setView([35.0, 135.0], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        var markers = L.markerClusterGroup();
+        // ▼ 마커 클러스터 그룹 생성 + 커스텀 아이콘 로직
+        var markers = L.markerClusterGroup({
+            // ▼ iconCreateFunction: 클러스터 아이콘을 대표 사진으로 생성
+            iconCreateFunction: function(cluster) {
+                var childMarkers = cluster.getAllChildMarkers();
+                // 첫 번째 마커의 iconUrl 얻기
+                var firstMarkerIcon = childMarkers[0].options.icon.options.iconUrl;
+                // 클러스터에 몇 장이 포함되었는지 숫자
+                var childCount = cluster.getChildCount();
+
+                // DivIcon 반환(대표 사진을 배경으로)
+                return L.divIcon({
+                    html: `<div class="cluster-icon" style="background-image: url('${firstMarkerIcon}');">
+                             <span>${childCount}</span>
+                           </div>`,
+                    className: 'my-cluster-icon',
+                    iconSize: [50, 50]
+                });
+            }
+        });
         map.addLayer(markers);
-        var locationMap = {};
-        var allDates = new Set();
+
+        // 전역 변수
         var imageData = [];
+        var locationMap = {}; // { "lat_lng_key": { lat, lng, date, timeArray:[...], imageArray:[...], minMinute } }
+        var allDates = new Set();
         var currentSelectedDate = null;
         var isTimeSliderEnabled = false;
 
@@ -77,6 +129,7 @@
             }
         });
 
+        // 서버에서 EXIF 미리 파싱된 이미지 정보를 불러옴
         $.ajax({
             url: '/api/image_data',
             method: 'GET',
@@ -90,7 +143,10 @@
                 var sortedDates = Array.from(allDates).sort();
                 createDateButtons(sortedDates);
                 if (sortedDates.length > 0) {
+                    // 초기 날짜 버튼 활성화 (디폴트: 첫 번째 날짜)
                     currentSelectedDate = sortedDates[0];
+                    // locationMap 초기화
+                    buildLocationMap(currentSelectedDate);
                     initializeTimeSliderForDate(currentSelectedDate);
                     displayImagesByDate(currentSelectedDate);
                     $('.date-button').first().addClass('active');
@@ -101,8 +157,10 @@
             }
         });
 
+        // 날짜 버튼 생성 함수
         function createDateButtons(dates) {
             var container = $('#dateButtonsContainer');
+            container.empty(); // 혹시 모르니 초기화
             dates.forEach(dateStr => {
                 var formattedDate = formatDateButton(dateStr);
                 var button = $('<button></button>')
@@ -112,6 +170,7 @@
                         $('.date-button').removeClass('active');
                         $(this).addClass('active');
                         currentSelectedDate = dateStr;
+                        buildLocationMap(dateStr);
                         initializeTimeSliderForDate(dateStr);
                         if (isTimeSliderEnabled) {
                             const selectedMinutes = parseInt($('#timeSlider').val(), 10);
@@ -124,6 +183,7 @@
             });
         }
 
+        // 날짜 버튼에 보여줄 텍스트 포맷 (예: 08/02(월))
         function formatDateButton(dateStr) {
             var date = new Date(dateStr);
             var month = String(date.getMonth() + 1).padStart(2, '0');
@@ -137,45 +197,78 @@
             return days[day];
         }
 
+        // [핵심 변경] 특정 날짜에 대한 locationMap을 만들어서
+        // 같은 좌표의 사진을 묶고, 그 중 "가장 빠른 시간(minMinute)"을 별도로 계산
+        function buildLocationMap(selectedDate) {
+            locationMap = {};
+            var filtered = imageData.filter(item => item.date === selectedDate);
+
+            filtered.forEach(item => {
+                // 소수점 5자리로 좌표를 묶음(정확도 조절 가능)
+                var key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
+
+                if (!locationMap[key]) {
+                    locationMap[key] = {
+                        lat: item.lat,
+                        lng: item.lng,
+                        date: item.date,
+                        timeArray: [],
+                        imageArray: [],
+                        minMinute: 1440 // 초기값 큰 수
+                    };
+                }
+                locationMap[key].timeArray.push(item.time);
+                locationMap[key].imageArray.push(item.path);
+
+                // 가장 빠른 시간(분) 계산
+                const [hh, mm] = item.time.split(':').map(Number);
+                const itemMinutes = hh * 60 + mm;
+                if (itemMinutes < locationMap[key].minMinute) {
+                    locationMap[key].minMinute = itemMinutes;
+                }
+            });
+        }
+
+        // 선택된 날짜에 대해 시간 슬라이더 설정
         function initializeTimeSliderForDate(selectedDate) {
-            const times = imageData
-                .filter(item => item.date === selectedDate)
-                .map(item => {
-                    const [hh, mm] = item.time.split(':').map(Number);
-                    return hh * 60 + mm;
-                })
+            // locationMap에 있는 각 좌표 그룹의 minMinute들을 추출
+            var minMinutesArray = Object.keys(locationMap)
+                .map(key => locationMap[key].minMinute)
                 .sort((a, b) => a - b);
-            if (times.length === 0) {
+
+            if (minMinutesArray.length === 0) {
                 $('#timeSlider').attr('disabled', true);
                 $('#timeLabel').text('N/A');
                 return;
             }
 
-          // datalist 업데이트
-          const timeTicksElement = $('#timeTicks');
-          timeTicksElement.empty();
-          times.forEach(time => {
-              timeTicksElement.append(`<option value="${time}">`);
-          });
+            // datalist 업데이트
+            const timeTicksElement = $('#timeTicks');
+            timeTicksElement.empty();
+            minMinutesArray.forEach(m => {
+                timeTicksElement.append(`<option value="${m}">`);
+            });
+
             $('#timeSlider').attr('disabled', !isTimeSliderEnabled);
-          $('#timeSlider').attr('min', times[0]);
-          $('#timeSlider').attr('max', times[times.length - 1]);
-          $('#timeSlider').val(times[0]);
-          updateTimeLabel(times[0]);
-            // 슬라이더 이벤트 핸들러 수정
-          $('#timeSlider').off('input').on('input', function() {
-              const currentValue = parseInt($(this).val(), 10);
-              // 가장 가까운 실제 시간값 찾기
-              const closestTime = times.reduce((prev, curr) => {
-                  return Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev;
-              });
-              
-              $(this).val(closestTime);
-              updateTimeLabel(closestTime);
-              if (isTimeSliderEnabled) {
-                  displayImagesByDateAndTime(selectedDate, closestTime);
-              }
-          });
+            $('#timeSlider').attr('min', minMinutesArray[0]);
+            $('#timeSlider').attr('max', minMinutesArray[minMinutesArray.length - 1]);
+            $('#timeSlider').val(minMinutesArray[0]);
+            updateTimeLabel(minMinutesArray[0]);
+
+            // 슬라이더 이벤트 핸들러
+            $('#timeSlider').off('input').on('input', function() {
+                const currentValue = parseInt($(this).val(), 10);
+                // locationMap에 존재하는 minMinute 중 가장 가까운 값 찾기
+                const closestTime = minMinutesArray.reduce((prev, curr) => {
+                    return Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev;
+                });
+                $(this).val(closestTime);
+                updateTimeLabel(closestTime);
+
+                if (isTimeSliderEnabled) {
+                    displayImagesByDateAndTime(selectedDate, closestTime);
+                }
+            });
         }
 
         function updateTimeLabel(minutes) {
@@ -184,101 +277,110 @@
             $('#timeLabel').text(`${hh}:${mm}`);
         }
 
+        // [수정] 날짜만 활성화된 경우(시간 필터 X), 해당 날짜 locationMap 기반 마커 표시
         function displayImagesByDate(selectedDate) {
             markers.clearLayers();
-            locationMap = {};
 
-            imageData.forEach(item => {
-                if (item.date === selectedDate) {
-                    const key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
-                    if (!locationMap[key]) {
-                        locationMap[key] = [];
-                    }
-                    locationMap[key].push({
-                        path: item.path,
-                        time: item.time
-                    });
-                }
-            });
-            createMarkers();
-        }
-
-        function displayImagesByDateAndTime(selectedDate, selectedMinutes) {
-          markers.clearLayers();
-          locationMap = {};
-          let centerLatLng = null; // 중앙에 위치할 마커의 좌표
-            imageData.forEach(item => {
-              if (item.date === selectedDate) {
-                  const [hh, mm] = item.time.split(':').map(Number);
-                  const itemMinutes = hh * 60 + mm;
-                  if (itemMinutes <= selectedMinutes) {
-                      const key = item.lat.toFixed(5) + "," + item.lng.toFixed(5);
-                      if (!locationMap[key]) {
-                          locationMap[key] = [];
-                      }
-                      locationMap[key].push({
-                          path: item.path,
-                          time: item.time
-                      });
-                      centerLatLng = [item.lat, item.lng]; // 마지막으로 추가된 마커의 좌표를 저장
-                  }
-              }
-          });
-          createMarkers();
-            // 마커가 존재할 경우, 해당 마커의 위치로 지도 이동
-          if (centerLatLng) {
-              map.setView(centerLatLng, map.getZoom());
-          }
-        }
-
-        function createMarkers() {
+            // locationMap에 있는 모든 좌표를 순회하며 마커 생성
             for (var key in locationMap) {
-                var coords = key.split(",");
-                var lat = parseFloat(coords[0]);
-                var lng = parseFloat(coords[1]);
-                var images = locationMap[key];
-                var marker = L.marker([lat, lng]);
-                var popupContent = '<div class="photo-gallery-container">';
-
-                // 시간순으로 정렬
-                images.sort((a, b) => a.time.localeCompare(b.time));
-
-                images.forEach(function(image) {
-                    popupContent += `<div class="photo-time">촬영 시간: ${image.time}</div>`;
-                    popupContent += `<img src="${image.path}" alt="사진" onclick="openImage('${image.path}', this.parentNode)" />`;
-                });
-                popupContent += '</div>';
-                marker.bindPopup(popupContent);
+                var loc = locationMap[key];
+                var marker = createMarker(loc);
                 markers.addLayer(marker);
             }
 
+            // 지도 범위 맞춤
             if (markers.getLayers().length > 0) {
                 map.fitBounds(markers.getBounds());
+            } else {
+                console.log("선택한 날짜에 표시할 위치가 없습니다.");
+            }
+        }
+
+        // [수정] 날짜 + 시간 슬라이더 활성화 시, locationMap 내에서 minMinute <= selectedMinutes 인 위치만 표시
+        function displayImagesByDateAndTime(selectedDate, selectedMinutes) {
+            markers.clearLayers();
+
+            var centerLatLng = null;
+            for (var key in locationMap) {
+                var loc = locationMap[key];
+                if (loc.minMinute <= selectedMinutes) {
+                    var marker = createMarker(loc);
+                    markers.addLayer(marker);
+                    centerLatLng = [loc.lat, loc.lng];
+                }
+            }
+
+            if (centerLatLng) {
+                map.setView(centerLatLng, map.getZoom());
             } else {
                 console.log("선택한 범위 내에 표시할 이미지가 없습니다.");
             }
         }
 
+        // [핵심] locationMap 정보를 받아 마커 생성 + 팝업(해당 위치 이미지들)
+        function createMarker(loc) {
+            // 대표 이미지(첫 번째 사진)를 마커 아이콘으로 사용
+            var representativeImg = loc.imageArray[0];
+
+            var customIcon = L.icon({
+                iconUrl: representativeImg,
+                iconSize: [50, 50],
+                className: '' // 필요 시 추가 스타일 적용 가능
+            });
+
+            var marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
+
+            // 팝업에 여러 사진을 보여주기
+            var popupContent = '<div class="photo-gallery-container">';
+            // 시간 순으로 정렬
+            const sortedByTime = loc.timeArray
+                .map((timeVal, idx) => ({time: timeVal, path: loc.imageArray[idx]}))
+                .sort((a, b) => a.time.localeCompare(b.time));
+
+            sortedByTime.forEach(item => {
+                popupContent += `<div class="photo-time">촬영 시간: ${item.time}</div>`;
+                popupContent += `<img src="${item.path}" alt="사진" onclick="openImage('${item.path}', this.parentNode)" />`;
+            });
+            popupContent += '</div>';
+
+            marker.bindPopup(popupContent);
+            return marker;
+        }
+
+        // [Lightbox] 오버레이로 사진 슬라이드쇼 표시
         function openImage(imagePath, gallery) {
             var existingLightbox = $('#lightbox');
             if (existingLightbox.length) {
                 existingLightbox.remove();
             }
 
-            const lightbox = $('<div></div>').attr('id', 'lightbox');
+            const lightbox = $('<div></div>')
+                .attr('id', 'lightbox')
+                .addClass('lightbox');
+
+            // gallery 내부의 모든 <img> 태그 경로를 배열화
             let images = Array.from(gallery.querySelectorAll('img')).map(img => img.src);
+
+            // 클릭된 이미지가 배열에서 몇 번째인지 확인
             const normalizedImagePath = new URL(imagePath, window.location.origin).href;
             const currentIndex = images.indexOf(normalizedImagePath);
+
+            // 슬라이드쇼 HTML 구성
             let sliderHtml = '<div class="image-slider">';
             images.forEach(function(imgPath, index) {
-                sliderHtml += `<img src="${imgPath}" alt="큰 이미지" data-index="${index}" class="slide-image${index === currentIndex ? ' active' : ''}" />`;
+                sliderHtml += `
+                    <img src="${imgPath}" alt="큰 이미지" data-index="${index}" 
+                         class="slide-image${index === currentIndex ? ' active' : ''}" />
+                `;
             });
             sliderHtml += '<button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>';
             sliderHtml += '<button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>';
             sliderHtml += '</div>';
+
             lightbox.html(sliderHtml);
             $('body').append(lightbox);
 
+            // 라이트박스 영역(어두운 배경) 클릭 시 닫기
             lightbox.on('click', function(event) {
                 if (event.target === lightbox[0]) {
                     lightbox.remove();
@@ -286,6 +388,7 @@
             });
         }
 
+        // 슬라이드쇼 이전/다음
         function prevSlide(slider) {
             const images = $(slider).find('.slide-image');
             const activeImage = $(slider).find('.slide-image.active');
