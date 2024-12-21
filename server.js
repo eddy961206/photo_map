@@ -7,6 +7,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 // [성능개선 추가] EXIF 파싱용 라이브러리 로드 (exif-parser 호출)
 const ExifParser = require('exif-parser');
@@ -21,19 +22,6 @@ const imagesDir = path.join(__dirname, 'images');
 // [성능개선 추가] 서버 시작 시 images 디렉토리를 스캔해 모든 JPG 파일의 EXIF를 미리 파싱하고 캐시
 let imageDataCache = []; // { path: 'images/xxx.jpg', lat: number, lng: number, date: 'YYYY-MM-DD', time: 'HH:MM' } 형태의 배열
 
-// [성능개선 추가] EXIF의 위도경도를 십진수로 변환하는 함수
-function convertToDecimal(coord, ref) {
-  if (!coord) return null;
-  const degrees = coord[0];
-  const minutes = coord[1];
-  const seconds = coord[2];
-  let decimal = degrees + (minutes / 60) + (seconds / 3600);
-  if (ref === 'S' || ref === 'W') {
-    decimal = decimal * -1;
-  }
-  return decimal;
-}
-
 // [성능개선 추가] EXIF 파싱 함수
 function parseExifForAllImages() {
   return new Promise((resolve, reject) => {
@@ -44,6 +32,8 @@ function parseExifForAllImages() {
       let results = [];
       for (let file of jpgFiles) {
         const filePath = path.join(imagesDir, file);
+        const thumbnailPath = `images/thumbnails/${file}`;
+        const originalPath = `images/${file}`;
         const buffer = fs.readFileSync(filePath);
         const parser = ExifParser.create(buffer);
         const result = parser.parse();
@@ -73,9 +63,9 @@ function parseExifForAllImages() {
         }
 
         if (lat && lng && formattedDate && formattedTime) {
-          const thumbnailPath = `images/${file}`;
           results.push({
-            path: thumbnailPath,
+            thumbnailPath, // 썸네일 경로
+            originalPath,  // 원본 경로
             lat: lat,
             lng: lng,
             date: formattedDate,
@@ -87,6 +77,33 @@ function parseExifForAllImages() {
     });
   });
 }
+
+// [썸네일 생성 함수 추가]
+function generateThumbnails() {
+  const thumbnailDir = path.join(imagesDir, 'thumbnails');
+  if (!fs.existsSync(thumbnailDir)) {
+    fs.mkdirSync(thumbnailDir);
+  }
+
+  fs.readdir(imagesDir, (err, files) => {
+    if (err) return console.error("이미지 디렉토리 읽기 실패:", err);
+    files.filter(file => file.toLowerCase().endsWith('.jpg')).forEach(file => {
+      const inputPath = path.join(imagesDir, file);
+      const outputPath = path.join(thumbnailDir, file);
+
+      // 썸네일이 이미 존재하면 건너뛰기
+      if (fs.existsSync(outputPath)) return;
+
+      // 썸네일 생성
+      sharp(inputPath)
+        .resize({ width: 100 }) // 썸네일 너비 100px
+        .toFile(outputPath, (err, info) => {
+          if (err) console.error(`썸네일 생성 실패 (${file}):`, err);
+        });
+    });
+  });
+}
+
 
 // /api/images 라우트: images 폴더 내 JPG 파일 리스트 반환
 app.get('/api/images', (req, res) => {
@@ -118,3 +135,6 @@ parseExifForAllImages().then(results => {
 }).catch(err => {
   console.error("EXIF 파싱 중 오류 발생:", err);
 });
+
+// 서버 시작 시 썸네일 생성
+generateThumbnails();

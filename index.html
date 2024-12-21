@@ -109,7 +109,7 @@
 
         // 전역 변수
         var imageData = [];
-        var locationMap = {}; // { "lat_lng_key": { lat, lng, date, timeArray:[...], imageArray:[...], minMinute } }
+        var locationMap = {}; // { "lat_lng_key": { lat, lng, date, timeArray:[...], thumbnailPaths:[...], originalPaths:[...], minMinute } }
         var allDates = new Set();
         var currentSelectedDate = null;
         var isTimeSliderEnabled = false;
@@ -213,12 +213,14 @@
                         lng: item.lng,
                         date: item.date,
                         timeArray: [],
-                        imageArray: [],
+                        thumbnailPaths: [],
+                        originalPaths: [],
                         minMinute: 1440 // 초기값 큰 수
                     };
                 }
                 locationMap[key].timeArray.push(item.time);
-                locationMap[key].imageArray.push(item.path);
+                locationMap[key].thumbnailPaths.push(item.thumbnailPath);
+                locationMap[key].originalPaths.push(item.originalPath);
 
                 // 가장 빠른 시간(분) 계산
                 const [hh, mm] = item.time.split(':').map(Number);
@@ -319,13 +321,11 @@
 
         // [핵심] locationMap 정보를 받아 마커 생성 + 팝업(해당 위치 이미지들)
         function createMarker(loc) {
-            // 대표 이미지(첫 번째 사진)를 마커 아이콘으로 사용
-            var representativeImg = loc.imageArray[0];
-
+            // 클러스터 아이콘에만 썸네일 사용
             var customIcon = L.icon({
-                iconUrl: representativeImg,
+                iconUrl: loc.thumbnailPaths[0], // 썸네일 경로
                 iconSize: [50, 50],
-                className: '' // 필요 시 추가 스타일 적용 가능
+                className: ''
             });
 
             var marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
@@ -334,11 +334,11 @@
             var popupContent = '<div class="photo-gallery-container">';
             // 시간 순으로 정렬
             const sortedByTime = loc.timeArray
-                .map((timeVal, idx) => ({time: timeVal, path: loc.imageArray[idx]}))
+                .map((timeVal, idx) => ({time: timeVal, path: loc.originalPaths[idx] }))  // 원본경로
                 .sort((a, b) => a.time.localeCompare(b.time));
 
             sortedByTime.forEach(item => {
-                popupContent += `<div class="photo-time">촬영 시간: ${item.time}</div>`;
+                popupContent += `<div class="photo-time">${item.time}</div>`;
                 popupContent += `<img src="${item.path}" alt="사진" onclick="openImage('${item.path}', this.parentNode)" />`;
             });
             popupContent += '</div>';
