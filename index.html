@@ -10,69 +10,20 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <!-- [추가 내용] Date Buttons CSS -->
     <link rel="stylesheet" href="styles.css">
-    <style>
-        #map {
-            width: 100%;
-            height: 95vh;
-        }
-        .photo-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        .photo-gallery img {
-            width: 100px;
-            height: auto;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .photo-gallery img:hover {
-            transform: scale(1.05);
-        }
-
-        /* [추가] 마커 클러스터 커스텀 아이콘 스타일 */
-        .my-cluster-icon {
-            /* 클러스터 아이콘 전체 스타일 */
-            color: #fff;
-            text-align: center;
-            border-radius: 50%;
-            overflow: hidden;
-            font-size: 14px;
-            line-height: 1.2;
-            border: 2px solid #fff;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-        .my-cluster-icon span {
-            position: relative;
-            top: 0;
-            left: 0;
-            background-color: rgba(0,0,0,0.4);
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-top: 4px;
-            font-weight: bold;
-        }
-        .cluster-icon {
-            width: 50px;
-            height: 50px;
-            background-size: cover;
-            background-position: center center;
-            position: relative;
-        }
-    </style>
 </head>
 <body>
     <div id="dateButtonsContainer" class="date-buttons-container"></div>
     <div id="map"></div>
-    <div id="timeSliderContainer">
-      <label class="toggle-switch">
-          <input type="checkbox" id="timeSliderToggle">
-          <span class="toggle-slider"></span>
-      </label>
-      <label>시간 필터: <span id="timeLabel"></span></label>
-      <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
-      <datalist id="timeTicks"></datalist>
-    </div>
+    <!-- ▼ 시간 슬라이더 컨테이너 -->
+    <div id="timeSliderContainer" class="time-slider-container">
+        <label class="toggle-switch">
+            <input type="checkbox" id="timeSliderToggle">
+           <span class="toggle-slider"></span>
+       </label>
+       <label>시간 필터: <span id="timeLabel"></span></label>
+       <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
+       <datalist id="timeTicks"></datalist>
+   </div>
     <script src="https://unpkg.com/exif-js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -244,31 +195,34 @@
                 return;
             }
 
-            // datalist 업데이트
+            // 중복 제거
+            minMinutesArray = [...new Set(minMinutesArray)];
+                // datalist 업데이트 (균등 간격)
             const timeTicksElement = $('#timeTicks');
             timeTicksElement.empty();
-            minMinutesArray.forEach(m => {
-                timeTicksElement.append(`<option value="${m}">`);
-            });
-
+            const interval = 100 / (minMinutesArray.length - 1); // 균등 간격 계산 (0 ~ 100 기준)
+            for (let i = 0; i < minMinutesArray.length; i++) {
+                const tickValue = i * interval;
+                timeTicksElement.append(`<option value="${tickValue}" data-index="${i}">`);
+            }
             $('#timeSlider').attr('disabled', !isTimeSliderEnabled);
-            $('#timeSlider').attr('min', minMinutesArray[0]);
-            $('#timeSlider').attr('max', minMinutesArray[minMinutesArray.length - 1]);
-            $('#timeSlider').val(minMinutesArray[0]);
+            $('#timeSlider').attr('min', 0);
+            $('#timeSlider').attr('max', 100);
+            $('#timeSlider').val(0);
             updateTimeLabel(minMinutesArray[0]);
 
             // 슬라이더 이벤트 핸들러
             $('#timeSlider').off('input').on('input', function() {
-                const currentValue = parseInt($(this).val(), 10);
-                // locationMap에 존재하는 minMinute 중 가장 가까운 값 찾기
-                const closestTime = minMinutesArray.reduce((prev, curr) => {
-                    return Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev;
-                });
-                $(this).val(closestTime);
-                updateTimeLabel(closestTime);
-
-                if (isTimeSliderEnabled) {
-                    displayImagesByDateAndTime(selectedDate, closestTime);
+                const currentValue = parseFloat($(this).val());
+                // 균등 간격�� 틱 ��� 가장 가까운 인덱스 찾기
+                const closestIndex = Math.round(currentValue / interval);
+                const closestTickValue = closestIndex * interval;
+                $(this).val(closestTickValue);
+                // 해당 인덱스의 실제 시간(분) 가져���기
+                const selectedMinutes = minMinutesArray[closestIndex];
+                updateTimeLabel(selectedMinutes);
+                    if (isTimeSliderEnabled) {
+                    displayImagesByDateAndTime(selectedDate, selectedMinutes);
                 }
             });
         }

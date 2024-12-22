@@ -97,6 +97,7 @@ function generateThumbnails() {
       // 썸네일 생성
       sharp(inputPath)
         .resize({ width: 100 }) // 썸네일 너비 100px
+        .rotate()
         .toFile(outputPath, (err, info) => {
           if (err) console.error(`썸네일 생성 실패 (${file}):`, err);
         });
