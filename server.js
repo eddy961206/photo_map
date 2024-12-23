@@ -71,6 +71,13 @@ function parseExifForAllImages() {
             date: formattedDate,
             time: formattedTime
           });
+        } else {
+          if (!lat || !lng) {
+            // console.log(`${file} 파일에 GPS 좌표 정보가 없습니다.`);
+          }
+          if (!formattedDate || !formattedTime) {
+            // console.log(`${file} 파일에 시간 정보가 없습니다.`);
+          }
         }
       }
       resolve(results);
@@ -104,7 +111,6 @@ function generateThumbnails() {
     });
   });
 }
-
 
 // /api/images 라우트: images 폴더 내 JPG 파일 리스트 반환
 app.get('/api/images', (req, res) => {
