@@ -284,22 +284,45 @@
 
             var marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
 
-            // 팝업에 여러 사진을 보여주기
+            // 팝업에 슬라이드쇼 형태로 이미지들 추가
             var popupContent = '<div class="photo-gallery-container">';
-            // 시간 순으로 정렬
+
+            // 시간 순으로 정렬된 이미지들을 슬라이드로 추가
             const sortedByTime = loc.timeArray
-                .map((timeVal, idx) => ({time: timeVal, path: loc.originalPaths[idx] }))  // 원본경로
+                .map((timeVal, idx) => ({ time: timeVal, originalPath: loc.originalPaths[idx] }))
                 .sort((a, b) => a.time.localeCompare(b.time));
 
-            sortedByTime.forEach(item => {
-                popupContent += `<div class="photo-time">${item.time}</div>`;
-                popupContent += `<img src="${item.path}" alt="사진" onclick="openImage('${item.path}', this.parentNode)" />`;
+            if (sortedByTime.length > 1) {
+                // 이미지가 2장 이상일 경우에만 이전/다음 버튼 추가
+                popupContent += `
+                  <button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>
+                  <div class="image-slider">
+                `;
+            } else {
+                // 이미지가 1장일 경우 버튼 없이 이미지만 추가
+                popupContent += `
+                  <div class="image-slider single-image">
+                `;
+            }
+
+            sortedByTime.forEach((item, index) => {
+                popupContent += `<img src="${item.originalPath}" alt="사진 ${item.time}" class="slide-image${index === 0 ? ' active' : ''}" data-index="${index}" onclick="openImage('${item.originalPath}', this.parentNode)" />`;
             });
-            popupContent += '</div>';
+
+            popupContent += `</div>`;
+
+            if (sortedByTime.length > 1) {
+                popupContent += `
+                  <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
+                `;
+            }
+
+            popupContent += `</div>`;
 
             marker.bindPopup(popupContent);
             return marker;
         }
+
 
         // [Lightbox] 오버레이로 사진 슬라이드쇼 표시
         function openImage(imagePath, gallery) {

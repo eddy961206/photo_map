@@ -243,15 +243,61 @@ timeSlider {
   margin-bottom: 5px;
 }
 
-.photo-gallery-container {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
 /* ▼ 마커 팝업 내부 이미지 스타일 */
 .photo-gallery-container img {
-  width: 250px; /* 원하는 크기로 조정하세요 */
+  width: 250px; /* 원하는 크기로 조정 */
   height: auto;
   display: block;
+}
+
+/* ▼ 팝업 내부 슬라이드쇼 스타일 */
+.photo-gallery-container {
+  position: relative;
+  width: 250px; /* 이미지 너비와 일치 */
+  height: auto;
+  margin: 0 auto; /* 중앙 정렬 */
+}
+
+.photo-gallery-container .slide-prev,
+.photo-gallery-container .slide-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.7);
+    border: none;
+    font-size: 18px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.photo-gallery-container .slide-prev {
+    left: -30px; /* 버튼 위치 조정 */
+}
+
+.photo-gallery-container .slide-next {
+    right: -30px; /* 버튼 위치 조정 */
+}
+
+.photo-gallery-container .image-slider {
+    overflow: hidden;
+    width: 250px;
+}
+
+.photo-gallery-container .image-slider.single-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.photo-gallery-container .image-slider img {
+    width: 250px;
+    height: auto;
+    display: none;
+    cursor: pointer;
+}
+
+.photo-gallery-container .image-slider img.active {
+    display: block;
 }
