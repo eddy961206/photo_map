@@ -505,6 +505,11 @@ input:checked + .toggle-slider:before {
     width: 95%;
     max-width: 600px;
   }
+
+  /* 이미지 그리드 조정 */
+  .noGpsGallery-image-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
 }
 
 @media (max-width: 480px) {
@@ -517,6 +522,7 @@ input:checked + .toggle-slider:before {
   .time-slider-container {
     font-size: 13px;
     padding: 10px;
+    gap: 8px;
   }
 
   #timeSlider {
@@ -531,5 +537,32 @@ input:checked + .toggle-slider:before {
   
   .noGpsGallery-pagination .pagination-info {
     font-size: 14px;
+  }
+
+  /* 이미지 그리드 추가 조정 */
+  .noGpsGallery-image-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .noGpsGallery-image-grid img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .noGpsGallery-image-grid img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .noGpsGallery-content {
+    padding: 16px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background-color: #fff;
+    max-height: 85vh; /* 화면에 넘치지 않도록 높이 제한 */
+    overflow-y: auto; /* 세로 스크롤 활성화 */
   }
 }
