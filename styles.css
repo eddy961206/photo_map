@@ -301,3 +301,24 @@ timeSlider {
 .photo-gallery-container .image-slider img.active {
     display: block;
 }
+
+/* ▼ 인디케이터 스타일 */
+.indicators {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 5px;
+  background-color: #bbb;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.indicator.active {
+  background-color: #503535;
+}

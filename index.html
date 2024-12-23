@@ -80,6 +80,20 @@
             }
         });
 
+        // 인디케이터 클릭 시 해당 슬라이드로 이동
+        $(document).on('click', '.indicator', function() {
+            const index = $(this).index();
+            const slider = $(this).closest('.photo-gallery-container, .image-slider');
+            const images = $(slider).find('.slide-image');
+
+            images.removeClass('active');
+            $(images[index]).addClass('active');
+
+            // 인디케이터 업데이트
+            $(this).siblings('.indicator').removeClass('active');
+            $(this).addClass('active');
+        });
+
         // 서버에서 EXIF 미리 파싱된 이미지 정보를 불러옴
         $.ajax({
             url: '/api/image_data',
@@ -313,7 +327,10 @@
 
             if (sortedByTime.length > 1) {
                 popupContent += `
-                  <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
+                    <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
+                    <div class="indicators">
+                        ${sortedByTime.map((_, idx) => `<span class="indicator${idx === 0 ? ' active' : ''}"></span>`).join('')}
+                    </div>
                 `;
             }
 
@@ -347,11 +364,23 @@
             images.forEach(function(imgPath, index) {
                 sliderHtml += `
                     <img src="${imgPath}" alt="큰 이미지" data-index="${index}" 
-                         class="slide-image${index === currentIndex ? ' active' : ''}" />
+                        class="slide-image${index === currentIndex ? ' active' : ''}" />
                 `;
             });
-            sliderHtml += '<button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>';
-            sliderHtml += '<button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>';
+            sliderHtml += `
+                <button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>
+                <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
+            `;
+
+            // 인디케이터 추가
+            if (images.length > 1) {
+                sliderHtml += `
+                    <div class="indicators">
+                        ${images.map((_, idx) => `<span class="indicator${idx === currentIndex ? ' active' : ''}"></span>`).join('')}
+                    </div>
+                `;
+            }
+
             sliderHtml += '</div>';
 
             lightbox.html(sliderHtml);
@@ -374,6 +403,11 @@
             activeImage.removeClass('active');
             currentIndex = (currentIndex - 1 + images.length) % images.length;
             $(images[currentIndex]).addClass('active');
+
+            // 인디케이터 업데이트
+            const indicators = $(slider).find('.indicators .indicator');
+            indicators.removeClass('active');
+            $(indicators[currentIndex]).addClass('active');
         }
 
         function nextSlide(slider) {
@@ -384,6 +418,11 @@
             activeImage.removeClass('active');
             currentIndex = (currentIndex + 1) % images.length;
             $(images[currentIndex]).addClass('active');
+
+            // 인디케이터 업데이트
+            const indicators = $(slider).find('.indicators .indicator');
+            indicators.removeClass('active');
+            $(indicators[currentIndex]).addClass('active');
         }
     </script>
 </body>
