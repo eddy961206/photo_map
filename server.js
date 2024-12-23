@@ -62,23 +62,14 @@ function parseExifForAllImages() {
           formattedTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         }
 
-        if (lat && lng && formattedDate && formattedTime) {
-          results.push({
-            thumbnailPath, // 썸네일 경로
-            originalPath,  // 원본 경로
-            lat: lat,
-            lng: lng,
-            date: formattedDate,
-            time: formattedTime
-          });
-        } else {
-          if (!lat || !lng) {
-            // console.log(`${file} 파일에 GPS 좌표 정보가 없습니다.`);
-          }
-          if (!formattedDate || !formattedTime) {
-            // console.log(`${file} 파일에 시간 정보가 없습니다.`);
-          }
-        }
+        results.push({
+          thumbnailPath, // 썸네일 경로
+          originalPath,  // 원본 경로
+          lat: lat,
+          lng: lng,
+          date: formattedDate,
+          time: formattedTime
+        });
       }
       resolve(results);
     });

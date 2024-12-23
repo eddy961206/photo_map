@@ -356,3 +356,110 @@ timeSlider {
   background-color: #007bff; /* 활성화 시 색상 변경 */
   transform: scale(1.1); /* 활성화 시 크기 확대 */
 }
+
+/* ▼ 갤러리 모달 스타일 */
+.noGpsGallery-modal {
+  display: none; /* 기본 숨김 */
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.8);
+}
+
+.noGpsGallery-content {
+  position: relative;
+  margin: auto;
+  padding: 20px;
+  width: 80%;
+  max-width: 1000px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: #000;
+  text-decoration: none;
+}
+
+.noGpsGallery-slider {
+  position: relative;
+  width: 100%;
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.noGpsGallery-image-slider {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.noGpsGallery-image-slider img {
+  width: 100%;
+  height: auto;
+  display: none;
+  cursor: pointer;
+}
+
+.noGpsGallery-image-slider img.active {
+  display: block;
+}
+
+.noGpsGallery-slide-prev,
+.noGpsGallery-slide-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  font-size: 24px;
+  padding: 10px;
+  cursor: pointer;
+  z-index: 1;
+  border-radius: 50%;
+}
+
+.noGpsGallery-slide-prev {
+  left: 10px;
+}
+
+.noGpsGallery-slide-next {
+  right: 10px;
+}
+
+.noGpsGallery-indicators {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.noGpsGallery-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 5px;
+  background-color: #bbb;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.noGpsGallery-indicator.active {
+  background-color: #007bff;
+  transform: scale(1.2);
+}

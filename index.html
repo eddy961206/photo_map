@@ -23,7 +23,29 @@
        <label>시간 필터: <span id="timeLabel"></span></label>
        <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
        <datalist id="timeTicks"></datalist>
-   </div>
+    </div>
+
+    <!-- ▼ 위치정보 없는 사진 갤러리 버튼 -->
+    <div id="noGpsGalleryContainer" class="date-buttons-container">
+        <button id="noGpsGalleryButton" class="date-button">위치정보 없는 사진 보기</button>
+    </div>
+
+    <!-- ▼ 위치정보 없는 사진 갤러리 모달 -->
+    <div id="noGpsGalleryModal" class="noGpsGallery-modal">
+        <div class="noGpsGallery-content">
+            <span class="close-button">&times;</span>
+            <div class="noGpsGallery-slider">
+                <button class="noGpsGallery-slide-prev" onclick="noGpsGalleryPrevSlide()">❮</button>
+                <div class="noGpsGallery-image-slider">
+                    <!-- 위치정보 없는 갤러리 이미지들이 여기 들어갑니다 -->
+                </div>
+                <button class="noGpsGallery-slide-next" onclick="noGpsGalleryNextSlide()">❯</button>
+            </div>
+            <div class="noGpsGallery-indicators">
+                <!-- 위치정보 없는 갤러리 인디케이터들이 여기 들어갑니다 -->
+            </div>
+        </div>
+    </div>
     <script src="https://unpkg.com/exif-js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -65,6 +87,10 @@
         var currentSelectedDate = null;
         var isTimeSliderEnabled = false;
 
+        // 위치 정보 없는 사진 갤러리 관련 전역 변수
+        var noGpsImages = [];
+        var currentNoGpsGalleryIndex = 0;
+
         // 시간 슬라이더 토글 이벤트 리스너
         $('#timeSliderToggle').on('change', function() {
             isTimeSliderEnabled = $(this).prop('checked');
@@ -77,6 +103,13 @@
                 } else {
                     displayImagesByDate(currentSelectedDate);
                 }
+            }
+        });
+
+        // 위치 정보 없는 사진 갤러리 모달 외부 클릭 시 닫기
+        $(window).on('click', function(event) {
+            if ($(event.target).is('#noGpsGalleryModal')) {
+                $('#noGpsGalleryModal').fadeOut();
             }
         });
 
@@ -102,7 +135,11 @@
             success: function(data) {
                 imageData = data;
                 data.forEach(item => {
-                    allDates.add(item.date);
+                    if (!item.lat || !item.lng) {
+                      noGpsImages.push(item);
+                    } else {
+                      allDates.add(item.date);
+                    }
                 });
 
                 var sortedDates = Array.from(allDates).sort();
@@ -116,6 +153,11 @@
                     displayImagesByDate(currentSelectedDate);
                     $('.date-button').first().addClass('active');
                 }
+
+                // GPS 없는 사진 버튼 활성화
+                $('#noGpsGalleryButton').on('click', function() {
+                    openNoGpsGalleryModal();
+                });
             },
             error: function(err) {
                 console.log("에러 발생:", err);
@@ -166,7 +208,7 @@
         // 같은 좌표의 사진을 묶고, 그 중 "가장 빠른 시간(minMinute)"을 별도로 계산
         function buildLocationMap(selectedDate) {
             locationMap = {};
-            var filtered = imageData.filter(item => item.date === selectedDate);
+            var filtered = imageData.filter(item => item.date === selectedDate && item.lat && item.lng);
 
             filtered.forEach(item => {
                 // 소수점 5자리로 좌표를 묶음(정확도 조절 가능)
@@ -228,11 +270,11 @@
             // 슬라이더 이벤트 핸들러
             $('#timeSlider').off('input').on('input', function() {
                 const currentValue = parseFloat($(this).val());
-                // 균등 간격�� 틱 ��� 가장 가까운 인덱스 찾기
+                // 균등 간격의 틱 중 가장 가까운 인덱스 찾기
                 const closestIndex = Math.round(currentValue / interval);
                 const closestTickValue = closestIndex * interval;
                 $(this).val(closestTickValue);
-                // 해당 인덱스의 실제 시간(분) 가져���기
+                // 해당 인덱스의 실제 시간(분) 가져오기
                 const selectedMinutes = minMinutesArray[closestIndex];
                 updateTimeLabel(selectedMinutes);
                     if (isTimeSliderEnabled) {
@@ -423,6 +465,61 @@
             const indicators = $(slider).find('.indicators .indicator');
             indicators.removeClass('active');
             $(indicators[currentIndex]).addClass('active');
+        }
+
+        // 위치 정보 없는 사진 갤러리 모달 열기 함수
+        function openNoGpsGalleryModal() {
+            if (noGpsImages.length === 0) {
+                alert("위치 정보가 없는 사진이 없습니다.");
+                return;
+            }
+
+            currentNoGpsGalleryIndex = 0;
+            updateNoGpsGallerySlider();
+
+            $('#noGpsGalleryModal').fadeIn();
+        }
+
+        // 위치 정보 없는 사진 갤러리 모달 닫기 함수
+        $('.close-button').on('click', function() {
+            $('#noGpsGalleryModal').fadeOut();
+        });
+
+        // 위치 정보 없는 사진 갤러리 슬라이드 업데이트 함수
+        function updateNoGpsGallerySlider() {
+            var sliderContainer = $('.noGpsGallery-image-slider');
+            var indicatorsContainer = $('.noGpsGallery-indicators');
+            sliderContainer.empty();
+            indicatorsContainer.empty();
+
+            noGpsImages.forEach((item, index) => {
+                sliderContainer.append(`
+                    <img src="${item.originalPath}" alt="사진 ${item.time}" class="noGpsGallery-slide-image${index === currentNoGpsGalleryIndex ? ' active' : ''}" data-index="${index}" onclick="openImage('${item.originalPath}', this.parentNode)" />
+                `);
+                indicatorsContainer.append(`
+                    <span class="noGpsGallery-indicator${index === currentNoGpsGalleryIndex ? ' active' : ''}" onclick="noGpsGalleryGoToSlide(${index})"></span>
+                `);
+            });
+        }
+
+        // 위치 정보 없는 사진 갤러리 이전 슬라이드 함수
+        function noGpsGalleryPrevSlide() {
+            if (noGpsImages.length === 0) return;
+            currentNoGpsGalleryIndex = (currentNoGpsGalleryIndex - 1 + noGpsImages.length) % noGpsImages.length;
+            updateNoGpsGallerySlider();
+        }
+
+        // 위치 정보 없는 사진 갤러리 다음 슬라이드 함수
+        function noGpsGalleryNextSlide() {
+            if (noGpsImages.length === 0) return;
+            currentNoGpsGalleryIndex = (currentNoGpsGalleryIndex + 1) % noGpsImages.length;
+            updateNoGpsGallerySlider();
+        }
+
+        // 위치 정보 없는 사진 갤러리 특정 슬라이드로 이동 함수
+        function noGpsGalleryGoToSlide(index) {
+            currentNoGpsGalleryIndex = index;
+            updateNoGpsGallerySlider();
         }
     </script>
 </body>
