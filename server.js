@@ -1,9 +1,3 @@
-// ====================
-// [변경 및 추가 내용 - Node.js 서버 코드 예시]
-// - 이 코드는 images 폴더의 JPG 파일 목록을 읽어 JSON으로 반환하는 API를 구현합니다.
-// - 모든 console.log와 주석은 한국어로 작성하였습니다.
-// ====================
-
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
