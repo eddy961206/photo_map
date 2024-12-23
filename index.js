@@ -357,27 +357,37 @@ function openImage(imagePath, gallery) {
 
     // 슬라이드쇼 HTML 구성
     let sliderHtml = '<div class="image-slider">';
+
+    if (images.length > 1) {
+        // 이미지가 2장 이상일 경우에만 이전/다음 버튼 추가
+        sliderHtml += `
+          <button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>
+        `;
+    } else {
+        // 이미지가 1장일 경우 버튼 없이 이미지만 추가
+        sliderHtml += `
+          <div class="image-slider single-image">
+        `;
+    }
+
     images.forEach(function(imgPath, index) {
         sliderHtml += `
             <img src="${imgPath}" alt="큰 이미지" data-index="${index}" 
                 class="slide-image${index === currentIndex ? ' active' : ''}" />
         `;
     });
-    sliderHtml += `
-        <button class="slide-prev" onclick="prevSlide(this.parentNode)">&#10094;</button>
-        <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
-    `;
-
+    
     // 인디케이터 추가
     if (images.length > 1) {
         sliderHtml += `
-            <div class="indicators">
-                ${images.map((_, idx) => `<span class="indicator${idx === currentIndex ? ' active' : ''}"></span>`).join('')}
-            </div>
+        <button class="slide-next" onclick="nextSlide(this.parentNode)">&#10095;</button>
+        <div class="indicators">
+        ${images.map((_, idx) => `<span class="indicator${idx === currentIndex ? ' active' : ''}"></span>`).join('')}
+        </div>
         `;
     }
 
-    sliderHtml += '</div>';
+    sliderHtml += `</div>`;
 
     lightbox.html(sliderHtml);
     $('body').append(lightbox);
