@@ -130,7 +130,7 @@ const PhotoMapApp = {
                 });
 
                 // 위치 정보 없는 사진 버튼 텍스트 업데이트
-                $('#noGpsGalleryButton').text(`위치정보 없는 사진 (${noGpsCount})`);
+                $('#noGpsGalleryButton').text(`Photos without GPS (${noGpsCount})`);
 
                 // 날짜 버튼 생성
                 const sortedDates = Array.from(self.allDates).sort();
@@ -199,7 +199,7 @@ const PhotoMapApp = {
     },
 
     getKoreanDayOfWeek: function(day) {
-        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return days[day];
     },
 

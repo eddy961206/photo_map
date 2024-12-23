@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사진 위치 정보 지도 표시</title>
+    <title>Photo Location Map</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <!-- MarkerCluster CSS -->
@@ -21,14 +21,14 @@
             <input type="checkbox" id="timeSliderToggle">
            <span class="toggle-slider"></span>
        </label>
-       <label>시간 필터: <span id="timeLabel"></span></label>
+       <label>Time Filter: <span id="timeLabel"></span></label>
        <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
        <datalist id="timeTicks"></datalist>
     </div>
 
     <!-- ▼ 위치정보 없는 사진 갤러리 버튼 -->
     <div id="noGpsGalleryContainer" class="date-buttons-container">
-        <button id="noGpsGalleryButton" class="date-button">위치정보 없는 사진</button>
+        <button id="noGpsGalleryButton" class="date-button">Photos without GPS</button>
     </div>
 
     <!-- ▼ 위치정보 없는 사진 갤러리 모달 -->
@@ -41,9 +41,9 @@
           </div>
           <!-- ▼ Pagination Controls -->
           <div class="noGpsGallery-pagination">
-              <button class="pagination-prev" onclick="PhotoMapApp.noGpsGalleryPrevPage()">❮ 이전</button>
+              <button class="pagination-prev" onclick="PhotoMapApp.noGpsGalleryPrevPage()">❮ Prev</button>
               <span class="pagination-info">Page <span id="currentPage">1</span> of <span id="totalPages">10</span></span>
-              <button class="pagination-next" onclick="PhotoMapApp.noGpsGalleryNextPage()">다음 ❯</button>
+              <button class="pagination-next" onclick="PhotoMapApp.noGpsGalleryNextPage()">Next ❯</button>
           </div>
       </div>
     </div>
