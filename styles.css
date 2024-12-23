@@ -3,20 +3,6 @@
   width: 100%;
   height: 95vh;
 }
-.photo-gallery {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-.photo-gallery img {
-  width: 100px;
-  height: auto;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.photo-gallery img:hover {
-  transform: scale(1.05);
-}
 
 /* ▼ 날짜 버튼 컨테이너 스타일 */
 .date-buttons-container {
