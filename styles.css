@@ -1,9 +1,16 @@
-body {margin:0;}
+/*********************** 공통 스타일 ***********************/
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif; /* 폰트 지정 (가독성을 위해) */
+}
 
 /* ▼ 지도 스타일 */
 #map {
   width: 100%;
   height: 100vh;
+  /* 스마트폰에서 너무 작아보이지 않도록 최소 높이도 조정 가능
+     예: min-height: 400px; */
 }
 
 /******************* ▼ 날짜 버튼 관련  *******************/
@@ -173,13 +180,6 @@ input:checked + .toggle-slider {
 
 input:checked + .toggle-slider:before {
   transform: translateX(30px); /* 이동 거리 조정 */
-}
-
-/* 슬라이더 틱 마크 */
-timeSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
 }
 
 /******************* ▼ 마커 클러스터 관련  *******************/
@@ -463,22 +463,73 @@ timeSlider {
   color: #333;
 }
 
-/* 반응형 디자인 */
+/******************* ▼ 반응형 디자인 (스마트폰 대응)  *******************/
+/* 
+   - 모바일 환경에서 텍스트, 버튼, 슬라이더 등을
+     좀 더 크게 보여줄 수 있도록 폰트 크기/배치 조정
+   - 필요한 분기점(breakpoint)은 상황에 따라 조절 가능 (ex: 768px, 600px 등)
+*/
+
 @media (max-width: 768px) {
+  /* 지도 높이 조정 (스마트폰 세로 화면에서 너무 길지 않도록) */
+  #map {
+    height: 100vh;
+  }
+
+  /* 날짜 버튼 크기 / 글자 크기 키우기 */
+  .date-button {
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  /* 시간 슬라이더 컨테이너 조금 더 크게 */
+  .time-slider-container {
+    font-size: 14px;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  /* 슬라이더 너비 조정 */
+  #timeSlider {
+    width: 250px;
+  }
+
+  /* 라이트박스 이미지 크기 조정 */
+  .lightbox .image-slider {
+    width: 85%;
+    height: auto;
+  }
+
+  /* 위치정보 없는 사진 모달 컨텐츠 너비 축소 */
   .noGpsGallery-content {
-      width: 95%;
+    width: 95%;
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 더 작은 화면에 대한 추가 조정 */
+  .date-button {
+    font-size: 14px;
+    padding: 10px;
   }
 
-  .noGpsGallery-image-grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  .time-slider-container {
+    font-size: 13px;
+    padding: 10px;
   }
 
+  #timeSlider {
+    width: 200px;
+  }
+
+  .lightbox .image-slider {
+    width: 90%;
+    max-width: 400px;
+    height: auto;
+  }
+  
   .noGpsGallery-pagination .pagination-info {
-      font-size: 14px;
-  }
-
-  .noGpsGallery-pagination button {
-      padding: 6px 12px;
-      font-size: 12px;
+    font-size: 14px;
   }
 }
