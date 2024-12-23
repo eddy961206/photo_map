@@ -383,11 +383,15 @@ timeSlider {
   height: 100%;
   overflow: auto;
   background-color: rgba(0,0,0,0.8);
+
+  /* Flexbox를 사용하여 콘텐츠 중앙 정렬 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .noGpsGallery-content {
   position: relative;
-  margin: auto;
   padding: 20px;
   width: 90%;
   max-width: 1200px; /* 더 많은 이미지를 표시할 수 있도록 최대 너비 확대 */
