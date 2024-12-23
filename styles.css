@@ -248,3 +248,10 @@ timeSlider {
   flex-direction: column;
   gap: 5px;
 }
+
+/* ▼ 마커 팝업 내부 이미지 스타일 */
+.photo-gallery-container img {
+  width: 250px; /* 원하는 크기로 조정하세요 */
+  height: auto;
+  display: block;
+}
