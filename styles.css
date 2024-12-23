@@ -211,7 +211,7 @@ timeSlider {
   /* 클러스터 아이콘 전체 스타일 */
   color: #fff;
   text-align: center;
-  border-radius: 50%;
+  border-radius: 30%;
   overflow: hidden;
   font-size: 14px;
   line-height: 1.2;
