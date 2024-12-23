@@ -318,7 +318,7 @@ timeSlider {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 3000;
 }
 
 /* ▼ Lightbox 내부 이미지 슬라이더  */
@@ -329,6 +329,7 @@ timeSlider {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 3001;
 }
 
 .lightbox .image-slider img {

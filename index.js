@@ -313,7 +313,9 @@ function createMarker(loc) {
     }
 
     sortedByTime.forEach((item, index) => {
-        popupContent += `<img src="${item.originalPath}" alt="사진 ${item.time}" class="slide-image${index === 0 ? ' active' : ''}" data-index="${index}" onclick="openImage('${item.originalPath}', this.parentNode)" />`;
+        popupContent += `<img src="${item.originalPath}" alt="사진 ${item.time}" 
+                class="slide-image${index === 0 ? ' active' : ''}" data-index="${index}" 
+                onclick="openImage('${item.originalPath}', this.parentNode)" />`;
     });
 
     popupContent += `</div>`;
@@ -346,7 +348,8 @@ function openImage(imagePath, gallery) {
         .addClass('lightbox');
 
     // gallery 내부의 모든 <img> 태그 경로를 배열화
-    let images = Array.from(gallery.querySelectorAll('img')).map(img => img.src);
+    let images = Array.from(gallery.querySelectorAll('img'))
+                        .map(img => img.src.replace('/thumbnails', ''));
 
     // 클릭된 이미지가 배열에서 몇 번째인지 확인
     const normalizedImagePath = new URL(imagePath, window.location.origin).href;
@@ -457,7 +460,8 @@ function updateNoGpsGallerySlider() {
     // 이미지 그리드에 추가
     imagesToShow.forEach((item, index) => {
         sliderContainer.append(`
-            <img src="${item.thumbnailPath}" alt="사진 ${item.time}" class="noGpsGallery-image" data-index="${startIndex + index}" onclick="openImage('${item.originalPath}', this.parentNode)" />
+            <img src="${item.thumbnailPath}" alt="사진 ${item.time}" class="noGpsGallery-image" 
+            data-index="${startIndex + index}" onclick="openImage('${item.originalPath}', this.parentNode)" />
         `);
     });
 
