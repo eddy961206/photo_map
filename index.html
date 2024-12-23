@@ -27,25 +27,26 @@
 
     <!-- ▼ 위치정보 없는 사진 갤러리 버튼 -->
     <div id="noGpsGalleryContainer" class="date-buttons-container">
-        <button id="noGpsGalleryButton" class="date-button">위치정보 없는 사진 보기</button>
+        <button id="noGpsGalleryButton" class="date-button">위치정보 없는 사진 (n)</button>
     </div>
 
     <!-- ▼ 위치정보 없는 사진 갤러리 모달 -->
     <div id="noGpsGalleryModal" class="noGpsGallery-modal">
-        <div class="noGpsGallery-content">
-            <span class="close-button">&times;</span>
-            <div class="noGpsGallery-slider">
-                <button class="noGpsGallery-slide-prev" onclick="noGpsGalleryPrevSlide()">❮</button>
-                <div class="noGpsGallery-image-slider">
-                    <!-- 위치정보 없는 갤러리 이미지들이 여기 들어갑니다 -->
-                </div>
-                <button class="noGpsGallery-slide-next" onclick="noGpsGalleryNextSlide()">❯</button>
-            </div>
-            <div class="noGpsGallery-indicators">
-                <!-- 위치정보 없는 갤러리 인디케이터들이 여기 들어갑니다 -->
-            </div>
-        </div>
+      <div class="noGpsGallery-content">
+          <span class="close-button">&times;</span>
+          <!-- ▼ 이미지 그리드 -->
+          <div class="noGpsGallery-image-grid">
+              <!-- 위치정보 없는 갤러리 이미지들이 여기 들어갑니다 -->
+          </div>
+          <!-- ▼ Pagination Controls -->
+          <div class="noGpsGallery-pagination">
+              <button class="pagination-prev" onclick="noGpsGalleryPrevPage()">❮ 이전</button>
+              <span class="pagination-info">Page <span id="currentPage">1</span> of <span id="totalPages">10</span></span>
+              <button class="pagination-next" onclick="noGpsGalleryNextPage()">다음 ❯</button>
+          </div>
+      </div>
     </div>
+
     <script src="https://unpkg.com/exif-js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>

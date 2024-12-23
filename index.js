@@ -36,7 +36,10 @@ var isTimeSliderEnabled = false;
 
 // 위치 정보 없는 사진 갤러리 관련 전역 변수
 var noGpsImages = [];
-var currentNoGpsGalleryIndex = 0;
+var currentNoGpsGalleryPage = 1;
+var lastNoGpsGalleryPage = 1;
+var imagesPerPage = 20;
+var totalNoGpsGalleryPages = 1;
 
 // 시간 슬라이더 토글 이벤트 리스너
 $('#timeSliderToggle').on('change', function() {
@@ -200,7 +203,8 @@ function initializeTimeSliderForDate(selectedDate) {
 
     // 중복 제거
     minMinutesArray = [...new Set(minMinutesArray)];
-        // datalist 업데이트 (균등 간격)
+
+    // datalist 업데이트 (균등 간격)
     const timeTicksElement = $('#timeTicks');
     timeTicksElement.empty();
     const interval = 100 / (minMinutesArray.length - 1); // 균등 간격 계산 (0 ~ 100 기준)
@@ -421,7 +425,8 @@ function openNoGpsGalleryModal() {
         return;
     }
 
-    currentNoGpsGalleryIndex = 0;
+    // 마지막으로 본 페이지로 설정
+    currentNoGpsGalleryPage = lastNoGpsGalleryPage || 1;
     updateNoGpsGallerySlider();
 
     $('#noGpsGalleryModal').fadeIn();
@@ -430,41 +435,56 @@ function openNoGpsGalleryModal() {
 // 위치 정보 없는 사진 갤러리 모달 닫기 함수
 $('.close-button').on('click', function() {
     $('#noGpsGalleryModal').fadeOut();
+    lastNoGpsGalleryPage = currentNoGpsGalleryPage;
 });
 
-// 위치 정보 없는 사진 갤러리 슬라이드 업데이트 함수
+// 위치 정보 없는 사진 갤러리 슬라이드 업데이트 함수 (페이지네이션)
 function updateNoGpsGallerySlider() {
-    var sliderContainer = $('.noGpsGallery-image-slider');
-    var indicatorsContainer = $('.noGpsGallery-indicators');
+    var sliderContainer = $('.noGpsGallery-image-grid');
+    var paginationInfo = $('#currentPage');
+    var totalPagesInfo = $('#totalPages');
     sliderContainer.empty();
-    indicatorsContainer.empty();
 
-    noGpsImages.forEach((item, index) => {
+    // 전체 페이지 수 계산
+    totalNoGpsGalleryPages = Math.ceil(noGpsImages.length / imagesPerPage);
+    totalPagesInfo.text(totalNoGpsGalleryPages);
+
+    // 현재 페이지에 해당하는 이미지 추출
+    var startIndex = (currentNoGpsGalleryPage - 1) * imagesPerPage;
+    var endIndex = startIndex + imagesPerPage;
+    var imagesToShow = noGpsImages.slice(startIndex, endIndex);
+
+    // 이미지 그리드에 추가
+    imagesToShow.forEach((item, index) => {
         sliderContainer.append(`
-            <img src="${item.originalPath}" alt="사진 ${item.time}" class="noGpsGallery-slide-image${index === currentNoGpsGalleryIndex ? ' active' : ''}" data-index="${index}" onclick="openImage('${item.originalPath}', this.parentNode)" />
-        `);
-        indicatorsContainer.append(`
-            <span class="noGpsGallery-indicator${index === currentNoGpsGalleryIndex ? ' active' : ''}" onclick="noGpsGalleryGoToSlide(${index})"></span>
+            <img src="${item.thumbnailPath}" alt="사진 ${item.time}" class="noGpsGallery-image" data-index="${startIndex + index}" onclick="openImage('${item.originalPath}', this.parentNode)" />
         `);
     });
+
+    // 현재 페이지 정보 업데이트
+    paginationInfo.text(currentNoGpsGalleryPage);
 }
 
-// 위치 정보 없는 사진 갤러리 이전 슬라이드 함수
-function noGpsGalleryPrevSlide() {
-    if (noGpsImages.length === 0) return;
-    currentNoGpsGalleryIndex = (currentNoGpsGalleryIndex - 1 + noGpsImages.length) % noGpsImages.length;
-    updateNoGpsGallerySlider();
+// 위치 정보 없는 사진 갤러리 이전 페이지 함수
+function noGpsGalleryPrevPage() {
+    if (currentNoGpsGalleryPage > 1) {
+        currentNoGpsGalleryPage--;
+        updateNoGpsGallerySlider();
+    }
 }
 
-// 위치 정보 없는 사진 갤러리 다음 슬라이드 함수
-function noGpsGalleryNextSlide() {
-    if (noGpsImages.length === 0) return;
-    currentNoGpsGalleryIndex = (currentNoGpsGalleryIndex + 1) % noGpsImages.length;
-    updateNoGpsGallerySlider();
+// 위치 정보 없는 사진 갤러리 다음 페이지 함수
+function noGpsGalleryNextPage() {
+    if (currentNoGpsGalleryPage < totalNoGpsGalleryPages) {
+        currentNoGpsGalleryPage++;
+        updateNoGpsGallerySlider();
+    }
 }
 
-// 위치 정보 없는 사진 갤러리 특정 슬라이드로 이동 함수
-function noGpsGalleryGoToSlide(index) {
-    currentNoGpsGalleryIndex = index;
-    updateNoGpsGallerySlider();
+// 위치 정보 없는 사진 갤러리 특정 페이지로 이동 함수 (필요 시)
+function noGpsGalleryGoToPage(pageNumber) {
+    if (pageNumber >= 1 && pageNumber <= totalNoGpsGalleryPages) {
+        currentNoGpsGalleryPage = pageNumber;
+        updateNoGpsGallerySlider();
+    }
 }

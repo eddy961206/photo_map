@@ -1,8 +1,11 @@
 body {margin:0;}
+
+/* ▼ 지도 스타일 */
 #map {
   width: 100%;
   height: 100vh;
 }
+
 /******************* ▼ 날짜 버튼 관련  *******************/
 /* ▼ 날짜 버튼 컨테이너 */
 .date-buttons-container {
@@ -385,8 +388,8 @@ timeSlider {
   position: relative;
   margin: auto;
   padding: 20px;
-  width: 80%;
-  max-width: 1000px;
+  width: 90%;
+  max-width: 1200px; /* 더 많은 이미지를 표시할 수 있도록 최대 너비 확대 */
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -406,71 +409,71 @@ timeSlider {
   text-decoration: none;
 }
 
-.noGpsGallery-slider {
-  position: relative;
+/* ▼ 이미지 그리드 스타일 */
+.noGpsGallery-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 반응형 그리드 */
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.noGpsGallery-image-grid img {
   width: 100%;
-  height: 80vh;
+  height: auto;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: transform 0.3s;
+}
+
+.noGpsGallery-image-grid img:hover {
+  transform: scale(1.05);
+}
+
+/* ▼ Pagination Controls 스타일 */
+.noGpsGallery-pagination {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: 20px;
+  gap: 20px;
 }
 
-.noGpsGallery-image-slider {
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
-
-.noGpsGallery-image-slider img {
-  width: 100%;
-  height: auto;
-  display: none;
-  cursor: pointer;
-}
-
-.noGpsGallery-image-slider img.active {
-  display: block;
-}
-
-.noGpsGallery-slide-prev,
-.noGpsGallery-slide-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.7);
-  border: none;
-  font-size: 24px;
-  padding: 10px;
-  cursor: pointer;
-  z-index: 1;
-  border-radius: 50%;
-}
-
-.noGpsGallery-slide-prev {
-  left: 10px;
-}
-
-.noGpsGallery-slide-next {
-  right: 10px;
-}
-
-.noGpsGallery-indicators {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.noGpsGallery-indicator {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin: 0 5px;
-  background-color: #bbb;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s;
-}
-
-.noGpsGallery-indicator.active {
+.noGpsGallery-pagination button {
   background-color: #007bff;
-  transform: scale(1.2);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.noGpsGallery-pagination button:hover {
+  background-color: #0056b3;
+}
+
+.noGpsGallery-pagination .pagination-info {
+  font-size: 16px;
+  color: #333;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .noGpsGallery-content {
+      width: 95%;
+  }
+
+  .noGpsGallery-image-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .noGpsGallery-pagination .pagination-info {
+      font-size: 14px;
+  }
+
+  .noGpsGallery-pagination button {
+      padding: 6px 12px;
+      font-size: 12px;
+  }
 }
