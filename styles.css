@@ -3,6 +3,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: sans-serif; /* 폰트 지정 (가독성을 위해) */
+  user-select: none; /* 드래그 선택 방지 */
 }
 
 /* ▼ 지도 스타일 */
