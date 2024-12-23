@@ -84,13 +84,17 @@ $.ajax({
     dataType: 'json',
     success: function(data) {
         imageData = data;
+        let noGpsCount = 0;
         data.forEach(item => {
             if (!item.lat || !item.lng) {
-              noGpsImages.push(item);
+                noGpsImages.push(item);
+                noGpsCount++;
             } else {
-              allDates.add(item.date);
+                allDates.add(item.date);
             }
         });
+
+        $('#noGpsGalleryButton').text(`위치정보 없는 사진 (${noGpsCount})`);
 
         var sortedDates = Array.from(allDates).sort();
         createDateButtons(sortedDates);
@@ -119,9 +123,11 @@ function createDateButtons(dates) {
     var container = $('#dateButtonsContainer');
     container.empty(); // 혹시 모르니 초기화
     dates.forEach(dateStr => {
+        // 해당 날짜에 속하는 이미지 개수 계산
+        const imageCount = imageData.filter(item => item.date === dateStr).length;
         var formattedDate = formatDateButton(dateStr);
         var button = $('<button></button>')
-            .text(formattedDate)
+            .text(formattedDate + ` (${imageCount})`)
             .addClass('date-button')
             .on('click', function() {
                 $('.date-button').removeClass('active');
