@@ -36,6 +36,11 @@
   border-color: #007bff;
 }
 
+/* ▼ 위치정보 없는 사진 버튼 */
+#noGpsGalleryContainer {
+  right: 200px;
+}
+
 /* ▼ Lightbox 스타일 */
 .lightbox {
   position: fixed;
