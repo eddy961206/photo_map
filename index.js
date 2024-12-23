@@ -282,7 +282,7 @@ function createMarker(loc) {
     var customIcon = L.icon({
         iconUrl: loc.thumbnailPaths[0], // 썸네일 경로
         iconSize: [50, 50],
-        className: ''
+        className: 'my-cluster-icon'
     });
 
     var marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
