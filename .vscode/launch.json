@@ -1,13 +1,23 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "type": "node",
-        "request": "launch",
-        "name": "Photo-map",
-        "skipFiles": ["<node_internals>/**"],
-        "program": "${workspaceFolder}/server.js"
-      }
-    ]
-  }
-  
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Photo-map",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/server_cloudinary.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "upload2cloudinary",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/upload2cloudinary.js"
+    }
+  ]
+}
