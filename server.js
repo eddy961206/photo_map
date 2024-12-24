@@ -52,15 +52,27 @@ function parseExifForAllImages() {
             // GPS 좌표 변환 함수
             function convertGPSToDecimal(gpsData) {
               if (!gpsData) return null;
-              const parts = gpsData.split(', ');
-              if (parts.length !== 3) return null;
-
-              const degrees = parseFloat(parts[0].split('/')[0]);
-              const minutes = parseFloat(parts[1].split('/')[0]);
-              const seconds = parseFloat(parts[2].split('/')[1]) / parseFloat(parts[2].split('/')[0]);
-
-              return degrees + (minutes / 60) + (seconds / 3600);
-            }
+              
+              // "31 deg 48' 16.09" N" 형식 파싱
+              const regex = /(\d+)\s*deg\s*(\d+)'\s*([\d.]+)"\s*([NSEW])/;
+              const match = gpsData.match(regex);
+              
+              if (!match) return null;
+              
+              const degrees = parseFloat(match[1]);
+              const minutes = parseFloat(match[2]);
+              const seconds = parseFloat(match[3]);
+              const direction = match[4];
+              
+              let decimal = degrees + (minutes / 60) + (seconds / 3600);
+              
+              // 남위, 서경인 경우 음수로 변환
+              if (direction === 'S' || direction === 'W') {
+                  decimal *= -1;
+              }
+              
+              return decimal;
+          }
 
             const lat = convertGPSToDecimal(resource.image_metadata.GPSLatitude);
             const lng = convertGPSToDecimal(resource.image_metadata.GPSLongitude);
