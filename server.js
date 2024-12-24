@@ -31,14 +31,24 @@ let imageDataCache = []; // { path: 'images/xxx.jpg', lat: number, lng: number, 
 
 // [성능개선 추가] EXIF 파싱 함수
 function parseExifForAllImages() {
-  return new Promise((resolve, reject) => {
-    cloudinary.api.resources({ type: 'upload', prefix: 'photo-map' })
-      .then(result => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let allResults = [];
+      let hasMore = true;
+      let nextCursor = null;
+
+      while (hasMore) {
+        const result = await cloudinary.search
+          .expression('folder:photo-map')
+          .with_field('image_metadata')
+          .max_results(100)
+          .next_cursor(nextCursor)
+          .execute();
+
         const resources = result.resources;
-        let results = [];
         
         resources.forEach(resource => {
-          if (resource.exif) {
+          if (resource.image_metadata) {
             // GPS 좌표 변환 함수
             function convertGPSToDecimal(gpsData) {
               if (!gpsData) return null;
@@ -52,14 +62,13 @@ function parseExifForAllImages() {
               return degrees + (minutes / 60) + (seconds / 3600);
             }
 
-            const lat = convertGPSToDecimal(resource.exif.GPSLatitude);
-            const lng = convertGPSToDecimal(resource.exif.GPSLongitude);
+            const lat = convertGPSToDecimal(resource.image_metadata.GPSLatitude);
+            const lng = convertGPSToDecimal(resource.image_metadata.GPSLongitude);
             
-            // 날짜 정보 파싱
             let formattedDate = null;
             let formattedTime = null;
-            if (resource.exif.DateTimeOriginal) {
-              const dateStr = resource.exif.DateTimeOriginal;
+            if (resource.image_metadata.DateTimeOriginal) {
+              const dateStr = resource.image_metadata.DateTimeOriginal;
               const date = new Date(dateStr);
               
               const year = date.getFullYear();
@@ -73,13 +82,12 @@ function parseExifForAllImages() {
             }
 
             const thumbnailUrl = cloudinary.url(resource.public_id, {
-              folder: 'photo-map',
               width: 300,
               height: 300,
               crop: 'thumb'
             });
 
-            results.push({
+            allResults.push({
               thumbnailPath: thumbnailUrl,
               originalPath: resource.secure_url,
               lat: lat,
@@ -89,12 +97,18 @@ function parseExifForAllImages() {
             });
           }
         });
+
+        // 다음 페이지 확인
+        hasMore = result.next_cursor != null;
+        nextCursor = result.next_cursor;
         
-        resolve(results);
-      })
-      .catch(err => {
-        reject(err);
-      });
+        console.log(`${allResults.length}개의 이미지 로드됨...`);
+      }
+      
+      resolve(allResults);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 

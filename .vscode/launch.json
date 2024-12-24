@@ -4,11 +4,11 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Photo-map",
+      "name": "server",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/server_cloudinary.js"
+      "program": "${workspaceFolder}/server.js"
     },
     {
       "type": "node",
