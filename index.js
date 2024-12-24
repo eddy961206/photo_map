@@ -327,7 +327,7 @@ const PhotoMapApp = {
         }
 
         if (centerLatLng) {
-            this.map.setView(centerLatLng, this.map.getZoom());
+            this.map.flyTo(centerLatLng, this.map.getZoom());
         } else {
             console.log("선택한 범위 내에 표시할 이미지가 없습니다.");
         }

@@ -109,6 +109,7 @@ function parseExifForAllImages() {
         console.log(`${allResults.length}개의 이미지 로드됨...`);
       }
       
+      allResults.reverse();
       resolve(allResults);
     } catch (err) {
       reject(err);
