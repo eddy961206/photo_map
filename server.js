@@ -1,13 +1,8 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const sharp = require('sharp');
 
 // 사진 저장 클라우드 (Cloudinary) 관련 라이브러리 로드
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
 
 // Cloudinary 설정
 cloudinary.config({
@@ -16,15 +11,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// [성능개선 추가] EXIF 파싱용 라이브러리 로드 (exif-parser 호출)
-const ExifParser = require('exif-parser');
-
 const app = express();
 
 // ▼ 정적 파일 제공: index.html, styles.css 및 images 폴더를 서빙
 app.use(express.static(__dirname));
-
-const imagesDir = path.join(__dirname, 'images');
 
 // [성능개선 추가] 서버 시작 시 images 디렉토리를 스캔해 모든 JPG 파일의 EXIF를 미리 파싱하고 캐시
 let imageDataCache = []; // { path: 'images/xxx.jpg', lat: number, lng: number, date: 'YYYY-MM-DD', time: 'HH:MM' } 형태의 배열
@@ -126,30 +116,6 @@ function parseExifForAllImages() {
   });
 }
 
-// [썸네일 생성 함수 추가]
-function generateThumbnails() {
-  // Cloudinary에서 썸네일 생성하므로 로컬 썸네일 생성 불필요
-  console.log("Cloudinary에서 썸네일 생성하므로 로컬 썸네일 생성 불필요");
-}
-
-// /api/images 라우트: images 폴더 내 JPG 파일 리스트 반환
-app.get('/api/images', (req, res) => {
-  fs.readdir(imagesDir, (err, files) => {
-    if (err) {
-      console.log("이미지 디렉토리 읽기 오류:", err);
-      return res.status(500).json({ error: 'Failed to read image directory' });
-    }
-    const jpgFiles = files.filter(file => file.toLowerCase().endsWith('.jpg'));
-    // Cloudinary URL 반환하도록 수정
-    const imageList = jpgFiles.map(file => {
-      return cloudinary.url(file, {
-        folder: 'photo-map'
-      });
-    });
-    res.json(imageList);
-  });
-});
-
 // [성능개선 추가] /api/image_data 라우트: 미리 파싱한 EXIF 위치 정보 및 날짜 정보 반환
 app.get('/api/image_data', (req, res) => {
   res.json(imageDataCache);
@@ -167,6 +133,3 @@ parseExifForAllImages().then(results => {
 }).catch(err => {
   console.error("EXIF 파싱 중 오류 발생:", err);
 });
-
-// 서버 시작 시 썸네일 생성
-generateThumbnails();
