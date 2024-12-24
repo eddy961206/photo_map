@@ -36,27 +36,32 @@ function parseExifForAllImages() {
       .then(result => {
         const resources = result.resources;
         let results = [];
-        const uploadPromises = resources.map(resource => {
-          const publicId = resource.public_id;
-          const imageUrl = cloudinary.url(publicId, { folder: 'photo-map' });
-          return new Promise((resolve, reject) => {
-            const parser = ExifParser.create(Buffer.from(resource.metadata.exif));
-            const result = parser.parse();
+        
+        resources.forEach(resource => {
+          if (resource.exif) {
+            // GPS 좌표 변환 함수
+            function convertGPSToDecimal(gpsData) {
+              if (!gpsData) return null;
+              const parts = gpsData.split(', ');
+              if (parts.length !== 3) return null;
 
-            // EXIF GPS 정보 확인
-            const lat = result.tags.GPSLatitude;
-            const lng = result.tags.GPSLongitude;
+              const degrees = parseFloat(parts[0].split('/')[0]);
+              const minutes = parseFloat(parts[1].split('/')[0]);
+              const seconds = parseFloat(parts[2].split('/')[1]) / parseFloat(parts[2].split('/')[0]);
 
-            // EXIF 촬영 날짜 정보 확인 (DateTimeOriginal)
-            const dateOriginal = result.tags.DateTimeOriginal;
+              return degrees + (minutes / 60) + (seconds / 3600);
+            }
 
+            const lat = convertGPSToDecimal(resource.exif.GPSLatitude);
+            const lng = convertGPSToDecimal(resource.exif.GPSLongitude);
+            
+            // 날짜 정보 파싱
             let formattedDate = null;
             let formattedTime = null;
-            if (dateOriginal) {
-              // exif-parser는 DateTimeOriginal을 초 단위의 Unix 타임스탬프로 반환
-              // 밀리초 단위로 변환하고 UTC 기준이므로 필요시 타임존 변환
-              const date = new Date((dateOriginal * 1000) - (9 * 60 * 60 * 1000));  // UTC -> 한국/일본 시각으로
-
+            if (resource.exif.DateTimeOriginal) {
+              const dateStr = resource.exif.DateTimeOriginal;
+              const date = new Date(dateStr);
+              
               const year = date.getFullYear();
               const month = String(date.getMonth() + 1).padStart(2, '0');
               const day = String(date.getDate()).padStart(2, '0');
@@ -66,28 +71,26 @@ function parseExifForAllImages() {
               const minute = date.getMinutes();
               formattedTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
             }
-            const thumbnailUrl = cloudinary.url(publicId, {
+
+            const thumbnailUrl = cloudinary.url(resource.public_id, {
               folder: 'photo-map',
-              width: 300, // 썸네일 가로 크기
-              height: 300, // 썸네일 세로 크기
-              crop: 'thumb' // 썸네일 생성 방식
+              width: 300,
+              height: 300,
+              crop: 'thumb'
             });
+
             results.push({
               thumbnailPath: thumbnailUrl,
-              originalPath: imageUrl,
+              originalPath: resource.secure_url,
               lat: lat,
               lng: lng,
               date: formattedDate,
               time: formattedTime
             });
-            resolve();
-          });
+          }
         });
-        Promise.all(uploadPromises).then(() => {
-          resolve(results);
-        }).catch(err => {
-          reject(err);
-        });
+        
+        resolve(results);
       })
       .catch(err => {
         reject(err);
