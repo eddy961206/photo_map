@@ -71,12 +71,14 @@ const PhotoMapApp = {
 
             if (self.currentSelectedDate) {
                 if (self.isTimeSliderEnabled) {
-                    const selectedMinutes = parseInt($('#timeSlider').val(), 10);
-                    self.displayImagesByDateAndTime(self.currentSelectedDate, selectedMinutes);
-                } else {
-                    self.displayImagesByDate(self.currentSelectedDate);
-                }
-            }
+                    const timeLabelText = $('#timeLabel').text(); 
+                    const [hours, minutes] = timeLabelText.split(':').map(Number); 
+                    const selectedMinutes = hours * 60 + minutes; 
+                    self.displayImagesByDateAndTime(self.currentSelectedDate, selectedMinutes); 
+                } else { 
+                    self.displayImagesByDate(self.currentSelectedDate); 
+                } 
+            } 
         });
 
         // 위치 정보 없는 사진 갤러리 모달 외부 클릭 시 닫기
@@ -267,8 +269,10 @@ const PhotoMapApp = {
         $('#timeSlider').attr('disabled', !this.isTimeSliderEnabled);
         $('#timeSlider').attr('min', 0);
         $('#timeSlider').attr('max', 100);
-        $('#timeSlider').val(0);
-        this.updateTimeLabel(minMinutesArray[0]);
+        const initialMinutes = minMinutesArray[0];
+        const initialSliderValue = 0;
+        $('#timeSlider').val(initialSliderValue);
+        this.updateTimeLabel(initialMinutes);
 
         // 슬라이더 이벤트 핸들러
         $('#timeSlider').off('input').on('input', function() {
@@ -315,6 +319,12 @@ const PhotoMapApp = {
     // [수정] 날짜 + 시간 슬라이더 활성화 시, locationMap 내에서 minMinute <= selectedMinutes 인 위치만 표시
     displayImagesByDateAndTime: function(selectedDate, selectedMinutes) {
         this.markers.clearLayers();
+
+        if (selectedMinutes === 0) {
+            const timeLabelText = $('#timeLabel').text();
+            const [hours, minutes] = timeLabelText.split(':').map(Number);
+            selectedMinutes = hours * 60 + minutes;
+        }
 
         let centerLatLng = null;
         for (const key in this.locationMap) {
