@@ -17,7 +17,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/local_server.js"
+      "program": "${workspaceFolder}/local_version/local_server.js"
     },
     {
       "type": "node",
