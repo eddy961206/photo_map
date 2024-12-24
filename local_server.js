@@ -115,7 +115,7 @@ app.get('/api/image_data', (req, res) => {
   res.json(imageDataCache);
 });
 
-const port = 3000;
+const port = 4000;
 
 // 서버 시작 시 EXIF 파싱 및 캐싱
 parseExifForAllImages().then(results => {

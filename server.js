@@ -81,17 +81,19 @@ function parseExifForAllImages() {
             let formattedTime = null;
             if (resource.image_metadata.DateTimeOriginal) {
               const dateStr = resource.image_metadata.DateTimeOriginal;
-              const date = new Date(dateStr);
-              
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
+              // YYYY:MM:DD HH:MM:SS 형식을 YYYY-MM-DD HH:MM:SS 형식으로 변환
+              const normalizedDateStr = dateStr.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+              const date = new Date(normalizedDateStr);
+              const utcDate = new Date(date.getTime());
+              const year = utcDate.getFullYear();
+              const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+              const day = String(utcDate.getDate()).padStart(2, '0');
               formattedDate = `${year}-${month}-${day}`;
-
-              const hour = date.getHours();
-              const minute = date.getMinutes();
-              formattedTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-            }
+          
+              const hour = String(utcDate.getHours()).padStart(2, '0');
+              const minute = String(utcDate.getMinutes()).padStart(2, '0');
+              formattedTime = `${hour}:${minute}`;
+          }
 
             const thumbnailUrl = cloudinary.url(resource.public_id, {
               width: 300,
