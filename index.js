@@ -1,7 +1,8 @@
 const PhotoMapApp = {
     // ▼ 지도, 마커, 전역 변수들을 객체 프로퍼티로 선언
     map: null,           // 지도 객체
-    markers: null,       // 마커 클러스터 그룹
+    markers: [],         // 마커 배열
+    markerCluster: null, // MarkerClusterer 객체
     imageData: [],       // 서버에서 받은 전체 이미지 정보
     locationMap: {},     // 좌표별로 이미지 묶음 { "lat_lng_key": { lat, lng, date, timeArray, ... } }
     allDates: new Set(), // 전체 날짜 Set
@@ -29,35 +30,17 @@ const PhotoMapApp = {
 
     // 지도 생성
     createMap: function() {
-        this.map = L.map('map').setView([35.0, 135.0], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(this.map);
+        this.map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 35.0, lng: 135.0 },
+            zoom: 5,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            streetViewControl: false
+        });
     },
 
     // 마커 클러스터 그룹 생성
     createMarkerCluster: function() {
-        // ▼ iconCreateFunction: 클러스터 아이콘을 대표 사진으로 생성
-        this.markers = L.markerClusterGroup({
-            iconCreateFunction: function(cluster) {
-                const childMarkers = cluster.getAllChildMarkers();
-                // 첫 번째 마커의 iconUrl 얻기
-                const firstMarkerIcon = childMarkers[0].options.icon.options.iconUrl;
-                // 클러스터에 몇 장이 포함되었는지 숫자
-                const childCount = cluster.getChildCount();
-
-                // DivIcon 반환(대표 사진을 배경으로)
-                return L.divIcon({
-                    html: `<div class="cluster-icon" style="background-image: url('${firstMarkerIcon}');">
-                             <span>${childCount}</span>
-                           </div>`,
-                    className: 'my-cluster-icon',
-                    iconSize: [50, 50]
-                });
-            }
-        });
-        this.map.addLayer(this.markers);
+        this.markerCluster = new markerClusterer.MarkerClusterer({ map: this.map, markers: this.markers });
     },
 
     // 이벤트 바인딩 (슬라이더 토글, 날짜 클릭, 등등)
@@ -191,7 +174,7 @@ const PhotoMapApp = {
         });
     },
 
-    // 날짜 버튼 텍스트 포맷 (예: 08/02(월))
+    // 날짜 버튼 텍스트 포맷 (예: 08/02(Mon))
     formatDateButton: function(dateStr) {
         const date = new Date(dateStr);
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -205,7 +188,7 @@ const PhotoMapApp = {
         return days[day];
     },
 
-    // [핵심 변경] 특정 날짜에 대한 locationMap을 만들어서
+    // 특정 날짜에 대한 locationMap을 만들어서
     // 같은 좌표의 사진을 묶고, 그 중 "가장 빠른 시간(minMinute)"을 별도로 계산
     buildLocationMap: function(selectedDate) {
         this.locationMap = {};
@@ -297,70 +280,81 @@ const PhotoMapApp = {
         $('#timeLabel').text(`${hh}:${mm}`);
     },
 
-    // [수정] 날짜만 활성화된 경우(시간 필터 X), 해당 날짜 locationMap 기반 마커 표시
+    // 날짜만 활성화된 경우(시간 필터 X), 해당 날짜 locationMap 기반 마커 표시
     displayImagesByDate: function(selectedDate) {
-        this.markers.clearLayers();
+        // 모든 마커 클러스터링 해제
+        if (this.markerCluster) {
+            this.markerCluster.clearMarkers();
+        }
+        this.markers = [];
 
         // locationMap에 있는 모든 좌표를 순회하며 마커 생성
         for (const key in this.locationMap) {
             const loc = this.locationMap[key];
             const marker = this.createMarker(loc);
-            this.markers.addLayer(marker);
+            this.markers.push(marker);
         }
 
+        // 마커 클러스터링
+        this.markerCluster.addMarkers(this.markers);
+
         // 지도 범위 맞춤
-        if (this.markers.getLayers().length > 0) {
-            this.map.fitBounds(this.markers.getBounds());
+        if (this.markers.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            this.markers.forEach(m => bounds.extend(m.getPosition()));
+            this.map.fitBounds(bounds);
         } else {
             console.log("선택한 날짜에 표시할 위치가 없습니다.");
         }
     },
 
-    // [수정] 날짜 + 시간 슬라이더 활성화 시, locationMap 내에서 minMinute <= selectedMinutes 인 위치만 표시
+    // 날짜 + 시간 슬라이더 활성화 시, locationMap 내에서 minMinute <= selectedMinutes 인 위치만 표시
     displayImagesByDateAndTime: function(selectedDate, selectedMinutes) {
-        this.markers.clearLayers();
-
-        if (selectedMinutes === 0) {
-            const timeLabelText = $('#timeLabel').text();
-            const [hours, minutes] = timeLabelText.split(':').map(Number);
-            selectedMinutes = hours * 60 + minutes;
+        // 모든 마커 클러스터링 해제
+        if (this.markerCluster) {
+            this.markerCluster.clearMarkers();
         }
+        this.markers = [];
 
-        let centerLatLng = null;
         for (const key in this.locationMap) {
             const loc = this.locationMap[key];
             if (loc.minMinute <= selectedMinutes) {
                 const marker = this.createMarker(loc);
-                this.markers.addLayer(marker);
-                centerLatLng = [loc.lat, loc.lng];
+                this.markers.push(marker);
             }
         }
 
-        if (centerLatLng) {
-            this.map.flyTo(centerLatLng, this.map.getZoom());
+        // 마커 클러스터링
+        this.markerCluster.addMarkers(this.markers);
+
+        // 지도 중심 이동
+        if (this.markers.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            this.markers.forEach(m => bounds.extend(m.getPosition()));
+            this.map.fitBounds(bounds);
         } else {
             console.log("선택한 범위 내에 표시할 이미지가 없습니다.");
         }
     },
 
-    // [핵심] locationMap 정보를 받아 마커 생성 + 팝업(해당 위치 이미지들)
+    // locationMap 정보를 받아 마커 생성 + 팝업(해당 위치 이미지들)
     createMarker: function(loc) {
-        // 클러스터 아이콘에만 썸네일 사용
-        const customIcon = L.icon({
-            iconUrl: loc.thumbnailPaths[0], // 썸네일 경로
-            iconSize: [50, 50],
-            className: 'my-cluster-icon'
+        // 기본 마커 생성
+        const marker = new google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            // map: this.map, // 마커 클러스터러에 의해 관리되므로 map은 지정하지 않음
+            icon: {
+                url: loc.thumbnailPaths[0] || 'default_marker_icon.png',
+                scaledSize: new google.maps.Size(50, 50)
+            }
         });
 
-        const marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
-
-        // 팝업에 슬라이드쇼 형태로 이미지들 추가
-        let popupContent = '<div class="photo-gallery-container">';
-
-        // 시간 순으로 정렬된 이미지들을 슬라이드로 추가
+        // 팝업(InfoWindow) 기능
         const sortedByTime = loc.timeArray
             .map((timeVal, idx) => ({ time: timeVal, originalPath: loc.originalPaths[idx] }))
             .sort((a, b) => a.time.localeCompare(b.time));
+
+        let popupContent = '<div class="photo-gallery-container">';
 
         if (sortedByTime.length > 1) {
             // 이미지가 2장 이상일 경우에만 이전/다음 버튼 추가
@@ -397,7 +391,14 @@ const PhotoMapApp = {
 
         popupContent += `</div>`;
 
-        marker.bindPopup(popupContent);
+        const infoWindow = new google.maps.InfoWindow({
+            content: popupContent
+        });
+
+        marker.addListener('click', () => {
+            infoWindow.open(this.map, marker);
+        });
+
         return marker;
     },
 
@@ -533,6 +534,9 @@ const PhotoMapApp = {
 };
 
 
+// 여기에서 PhotoMapApp을 전역 객체에 할당
+window.PhotoMapApp = PhotoMapApp;
+
 /*  
   ▼ 슬라이드쇼 제어 함수들은 HTML에서 직접 onclick으로 호출하고 있으므로
      window 전역에 바인딩하거나, IIFE 형태 등으로 별도 관리할 수도 있습니다.
@@ -541,7 +545,7 @@ const PhotoMapApp = {
 */
 
 // 슬라이드쇼 이전/다음
-function prevSlide(slider) {
+window.prevSlide = function(slider) {
     const images = $(slider).find('.slide-image');
     const activeImage = $(slider).find('.slide-image.active');
     let currentIndex = parseInt(activeImage.data('index'), 10);
@@ -556,7 +560,7 @@ function prevSlide(slider) {
     $(indicators[currentIndex]).addClass('active');
 }
 
-function nextSlide(slider) {
+window.nextSlide = function(slider) {
     const images = $(slider).find('.slide-image');
     const activeImage = $(slider).find('.slide-image.active');
     let currentIndex = parseInt(activeImage.data('index'), 10);
@@ -572,7 +576,7 @@ function nextSlide(slider) {
 }
 
 // Lightbox 열기 함수(동적으로도 호출해야 하므로 window 범위 유지)
-function openImage(imagePath, gallery) {
+window.openImage = function(imagePath, gallery) {
     // PhotoMapApp 객체 메서드로 옮길 수도 있지만,
     // 기존 구조를 살리기 위해 외부 함수 호출 형태로 유지
     PhotoMapApp.openImage(imagePath, gallery);

@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photo Location Map</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <!-- MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <!-- [추가 내용] Date Buttons CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,11 +13,11 @@
     <div id="timeSliderContainer" class="time-slider-container">
         <label class="toggle-switch">
             <input type="checkbox" id="timeSliderToggle">
-           <span class="toggle-slider"></span>
-       </label>
-       <label>Time Filter: <span id="timeLabel"></span></label>
-       <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
-       <datalist id="timeTicks"></datalist>
+            <span class="toggle-slider"></span>
+        </label>
+        <label>Time Filter: <span id="timeLabel"></span></label>
+        <input type="range" id="timeSlider" min="0" max="1439" value="0" list="timeTicks" disabled />
+        <datalist id="timeTicks"></datalist>
     </div>
 
     <!-- ▼ 위치정보 없는 사진 갤러리 버튼 -->
@@ -48,10 +42,17 @@
       </div>
     </div>
 
-    <script src="https://unpkg.com/exif-js"></script>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <!-- jQuery 먼저 로드 -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- index.js 먼저 로드 -->
     <script src="index.js"></script>
+    <!-- Google Maps JavaScript API 로드 및 콜백 설정 -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC0IKm6jPWKcOptPSlInsw7zk_xsXMLdD8&callback=PhotoMapApp.createMap">
+    </script>
+    <!-- MarkerClusterer library -->
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+    <!-- EXIF library -->
+    <script src="https://unpkg.com/exif-js"></script>
 </body>
 </html>
