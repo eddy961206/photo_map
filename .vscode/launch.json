@@ -27,6 +27,15 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}/upload2cloudinary.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "thumbnails",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/generate_thumbnails.js"
     }
   ]
 }
